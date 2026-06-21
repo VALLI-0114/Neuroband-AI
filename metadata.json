@@ -1,0 +1,6 @@
+{
+  "name": "NeuroBand AI",
+  "description": "NeuroBand AI is a sophisticated biometric monitoring and stress intelligence platform for high-performance individuals, featuring frosted glassmorphic designs, TinyML simulation wellness checks, and real-time stress logging.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
