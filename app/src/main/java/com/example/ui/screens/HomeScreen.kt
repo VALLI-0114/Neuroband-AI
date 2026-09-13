@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.BiometricViewModel
 import com.example.ui.ChatMessage
 import com.example.ui.components.GlassmorphicCard
@@ -49,6 +50,15 @@ fun HomeScreen(
     viewModel: BiometricViewModel,
     innerPadding: PaddingValues
 ) {
+    val latestLog by viewModel.latestLog.collectAsStateWithLifecycle(initialValue = null)
+    val livePayload = viewModel.liveSensorPayload
+    val isOnline = viewModel.sensorConnectionStatus == "ONLINE"
+    val isFingerDetected = livePayload?.fingerDetected ?: ((livePayload?.heartRate ?: 0) > 0)
+    val currentHr = if (isFingerDetected) (livePayload?.heartRate ?: (latestLog?.heartRate ?: 72)) else 0
+    val currentSteps = livePayload?.steps ?: (latestLog?.steps ?: 0)
+    val currentGsr = livePayload?.stressGsr ?: (latestLog?.stressGsr ?: 2.1)
+    val currentAccel = livePayload?.acceleration ?: 1.0
+
     var showDemoDialog by remember { mutableStateOf(false) }
     var isChatOpen by remember { mutableStateOf(false) }
     var chatInputText by remember { mutableStateOf("") }
@@ -105,7 +115,7 @@ fun HomeScreen(
                             .padding(horizontal = 16.dp, vertical = 6.dp)
                     ) {
                         Text(
-                            text = "✦ NEURAL STRESS INTELLIGENCE",
+                            text = if (isOnline) "✦ PI SENSORS STREAMING LIVE" else "✦ NEURAL STRESS INTELLIGENCE",
                             color = Color(0xFF06B6D4),
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
@@ -141,7 +151,7 @@ fun HomeScreen(
 
                     // Description subtitle
                     Text(
-                        text = "An AI-Powered Wearable companion that detects stress, explains why it happens, predicts what comes next, and guides users toward better mental wellbeing.",
+                        text = "Real-time AI wearable link tracking MAX30102 pulse oximetry and MPU6050 motion kinematics from your Raspberry Pi.",
                         fontSize = 15.sp,
                         lineHeight = 22.sp,
                         color = Color(0xFF94A3B8),
@@ -167,24 +177,24 @@ fun HomeScreen(
                                 style = Stroke(width = 8.dp.toPx())
                             )
                             
-                            // Ring 2 - Stress levels active circular progress (78%)
+                            // Ring 2 - Pulse progress
                             drawArc(
                                 brush = Brush.linearGradient(
-                                    colors = listOf(Color(0xFF06B6D4), Color(0xFF8B5CF6))
+                                    colors = if (isFingerDetected) listOf(Color(0xFF06B6D4), Color(0xFF10B981)) else listOf(Color(0xFF8B5CF6), Color(0xFF3B82F6))
                                 ),
                                 startAngle = -90f,
-                                sweepAngle = 280f, // ~78%
+                                sweepAngle = if (isFingerDetected) ((currentHr.coerceIn(40, 160) - 40) / 120f) * 360f else 280f,
                                 useCenter = false,
                                 style = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round)
                             )
 
-                            // Inner Glow Ring 3 - (63% activity level)
+                            // Inner Glow Ring 3
                             drawArc(
                                 brush = Brush.linearGradient(
                                     colors = listOf(Color(0xFF3B82F6), Color(0xFF06B6D4))
                                 ),
                                 startAngle = 30f,
-                                sweepAngle = 226f, // ~63%
+                                sweepAngle = 226f,
                                 useCenter = false,
                                 style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round),
                                 size = size * 0.75f,
@@ -195,29 +205,79 @@ fun HomeScreen(
                             )
                         }
 
-                        // Static text inside rings
+                        // Dynamic text inside rings
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.rotate(-ringRotation) // negate rotation to keep text static
+                            modifier = Modifier.rotate(-ringRotation)
                         ) {
                             Text(
-                                "HEART FLOW",
+                                if (isFingerDetected) "LIVE PULSE" else if (isOnline) "TOUCH SENSOR" else "HARDWARE LINK",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Black,
                                 color = Color(0xFF06B6D4)
                             )
                             Text(
-                                "78%",
-                                fontSize = 48.sp,
+                                if (isFingerDetected) "$currentHr" else if (isOnline) "READY" else "--",
+                                fontSize = if (isFingerDetected) 44.sp else 32.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
                             Text(
-                                "HIGH STRESS",
-                                fontSize = 10.sp,
+                                if (isFingerDetected) "BPM • OPTIMAL" else if (isOnline) "PLACE FINGER" else "OFFLINE",
+                                fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFFEF4444)
+                                color = if (isFingerDetected) Color(0xFF22C55E) else if (isOnline) Color(0xFF06B6D4) else Color(0xFFEF4444)
                             )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // LIVE HARDWARE STATS MINI-GRID ON HOME SCREEN
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color(0xFF0F172A).copy(alpha = 0.85f), RoundedCornerShape(14.dp))
+                                .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
+                                .padding(10.dp)
+                        ) {
+                            Column {
+                                Text("STEPS (MPU)", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text("$currentSteps", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color.White)
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color(0xFF0F172A).copy(alpha = 0.85f), RoundedCornerShape(14.dp))
+                                .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
+                                .padding(10.dp)
+                        ) {
+                            Column {
+                                Text("MOTION ACCEL", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text("$currentAccel g", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFF06B6D4))
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color(0xFF0F172A).copy(alpha = 0.85f), RoundedCornerShape(14.dp))
+                                .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
+                                .padding(10.dp)
+                        ) {
+                            Column {
+                                Text("STRESS GSR", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text("$currentGsr µS", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFF8B5CF6))
+                            }
                         }
                     }
 

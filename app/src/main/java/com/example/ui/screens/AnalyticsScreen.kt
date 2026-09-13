@@ -170,11 +170,18 @@ fun AnalyticsScreen(
         ) {
             when (viewModel.selectedDashboardSection) {
                 "Core Dashboard" -> {
-                    // LARGE STRESS RING CARD (78% stress level, High Stress)
+                    val currentHr = latestLog?.heartRate ?: (viewModel.liveSensorPayload?.heartRate ?: 72)
+                    val currentGsr = latestLog?.stressGsr ?: (viewModel.liveSensorPayload?.stressGsr ?: 2.1)
+                    val currentSteps = latestLog?.steps ?: (viewModel.liveSensorPayload?.steps ?: 0)
+                    val currentTemp = latestLog?.temperature ?: (viewModel.liveSensorPayload?.temperature ?: 36.6)
+                    val dynamicStressPercent = ((currentHr - 55).coerceAtLeast(0) * 1.3 + currentGsr * 6).toInt().coerceIn(15, 95)
+                    val isHighStress = dynamicStressPercent > 65
+
+                    // LARGE STRESS RING CARD
                     item {
                         GlassmorphicCard(
                             modifier = Modifier.fillMaxWidth(),
-                            glowColor = Color(0x33EF4444)
+                            glowColor = if (isHighStress) Color(0x33EF4444) else Color(0x3306B6D4)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -183,21 +190,24 @@ fun AnalyticsScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1.1f)) {
                                     Text(
-                                        "STRESS INTENSITY",
+                                        "LIVE STRESS INTENSITY",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF94A3B8)
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        "Level: High Stress",
-                                        fontSize = 20.sp,
+                                        if (isHighStress) "Level: Elevated Stress" else "Level: Optimal Balance",
+                                        fontSize = 18.sp,
                                         fontWeight = FontWeight.Black,
-                                        color = Color(0xFFEF4444)
+                                        color = if (isHighStress) Color(0xFFEF4444) else Color(0xFF06B6D4)
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        "Active heart rhythm stability is decreased. Recommended breathing interval due soon.",
+                                        if (viewModel.sensorConnectionStatus == "ONLINE")
+                                            "Live stream from MAX30102 & MPU6050 active."
+                                        else
+                                            "Raspberry Pi offline. Connect via Settings tab.",
                                         fontSize = 12.sp,
                                         color = Color(0xFF64748B),
                                         lineHeight = 16.sp
@@ -218,29 +228,29 @@ fun AnalyticsScreen(
                                         )
                                         drawArc(
                                             brush = Brush.linearGradient(
-                                                colors = listOf(Color(0xFFEF4444), Color(0xFFF97316))
+                                                colors = if (isHighStress) listOf(Color(0xFFEF4444), Color(0xFFF97316)) else listOf(Color(0xFF06B6D4), Color(0xFF10B981))
                                             ),
                                             startAngle = -90f,
-                                            sweepAngle = 280f, // 78% of 360f
+                                            sweepAngle = (dynamicStressPercent / 100f) * 360f,
                                             useCenter = false,
                                             style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
                                         )
                                     }
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text(
-                                            "78%",
-                                            fontSize = 24.sp,
+                                            "$dynamicStressPercent%",
+                                            fontSize = 22.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = Color.White
                                         )
-                                        Text("ACUTE", fontSize = 8.sp, color = Color(0xFFEF4444))
+                                        Text(if (isHighStress) "ELEVATED" else "CALM", fontSize = 8.sp, color = if (isHighStress) Color(0xFFEF4444) else Color(0xFF06B6D4))
                                     }
                                 }
                             }
                         }
                     }
 
-                    // KPI CARDS GRID (HR, HRV, Sleep Quality, Burnout Risk, Focus Score, Mental Fatigue, Recovery, Activity Level)
+                    // KPI CARDS GRID
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(
@@ -253,20 +263,12 @@ fun AnalyticsScreen(
 
                             // Grid Rows
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                KpiCard(modifier = Modifier.weight(1f), title = "Heart Rate", value = "72 BPM", desc = "Optimal Baseline", icon = Icons.Rounded.Favorite, tint = Color(0xFF06B6D4))
-                                KpiCard(modifier = Modifier.weight(1f), title = "HRV (Cardiac)", value = "58 ms", desc = "Stable Stability", icon = Icons.Rounded.MonitorHeart, tint = Color(0xFF8B5CF6))
+                                KpiCard(modifier = Modifier.weight(1f), title = "Heart Rate", value = "$currentHr BPM", desc = if (currentHr > 85) "Elevated Pulse" else "Optimal Baseline", icon = Icons.Rounded.Favorite, tint = Color(0xFF06B6D4))
+                                KpiCard(modifier = Modifier.weight(1f), title = "Stress GSR", value = "$currentGsr µS", desc = "Skin Conductance", icon = Icons.Rounded.MonitorHeart, tint = Color(0xFF8B5CF6))
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                KpiCard(modifier = Modifier.weight(1f), title = "Sleep Quality", value = "81%", desc = "8h 12m Duration", icon = Icons.Rounded.Bedtime, tint = Color(0xFF3B82F6))
-                                KpiCard(modifier = Modifier.weight(1f), title = "Burnout Risk", value = "43%", desc = "Moderate Threat", icon = Icons.Rounded.Widgets, tint = Color(0xFFEF4444))
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                KpiCard(modifier = Modifier.weight(1f), title = "Focus Level", value = "68%", desc = "Flow State Link", icon = Icons.Rounded.AutoAwesome, tint = Color(0xFFF59E0B))
-                                KpiCard(modifier = Modifier.weight(1f), title = "Mental Fatigue", value = "52%", desc = "Cognitive Load", icon = Icons.Rounded.Psychology, tint = Color(0xFFEC4899))
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                KpiCard(modifier = Modifier.weight(1f), title = "Recovery Score", value = "77%", desc = "Highly Receptive", icon = Icons.Rounded.Bolt, tint = Color(0xFF10B981))
-                                KpiCard(modifier = Modifier.weight(1f), title = "Activity Level", value = "63%", desc = "8,432 Steps", icon = Icons.Rounded.DirectionsRun, tint = Color(0xFF06B6D4))
+                                KpiCard(modifier = Modifier.weight(1f), title = "Skin Temp", value = "$currentTemp °C", desc = "Thermal Surface", icon = Icons.Rounded.Thermostat, tint = Color(0xFF3B82F6))
+                                KpiCard(modifier = Modifier.weight(1f), title = "Motion Steps", value = "$currentSteps", desc = "MPU6050 Count", icon = Icons.Rounded.DirectionsRun, tint = Color(0xFF10B981))
                             }
                         }
                     }

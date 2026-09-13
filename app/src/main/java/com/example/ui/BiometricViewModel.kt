@@ -2,8 +2,8 @@ package com.example.ui
 
 import android.app.Application
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,13 +20,21 @@ data class StressAlert(val id: Int, val title: String, val description: String, 
 class BiometricViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.getDatabase(application)
     private val repository = BiometricRepository(db.biometricDao())
+    private val sensorApiClient = SensorApiClient()
 
     // Bottom Navigation tab
     var currentTab by mutableStateOf(0)
         private set
 
-    // Sub-Dashboard Chip selection (for the top sub-navigation menu requested by the user)
+    // Sub-Dashboard Chip selection
     var selectedDashboardSection by mutableStateOf("Core Dashboard")
+
+    // Hardware Sensor Node Configuration & Live Telemetry
+    var raspberryPiHost by mutableStateOf("192.168.1.50")
+    var sensorConnectionStatus by mutableStateOf("OFFLINE") // "ONLINE", "CONNECTING", "OFFLINE"
+    var connectionErrorMessage by mutableStateOf<String?>(null)
+    var liveSensorPayload by mutableStateOf<SensorPayload?>(null)
+        private set
 
     // Scan State
     var isScanning by mutableStateOf(false)
@@ -44,9 +52,14 @@ class BiometricViewModel(application: Application) : AndroidViewModel(applicatio
 
     // AI Coach Chat History
     val chatMessages = mutableStateListOf<ChatMessage>().apply {
-        add(ChatMessage("coach", "Hello! I am your NeuroBand AI Coach. Connected to your ESP32 bio-sensors, I have analyzed your heart-rate, GSR, skin temp, and motion activity. How can I help you optimize your recovery today?"))
+        add(
+            ChatMessage(
+                "coach",
+                "Hello! I am your NeuroBand AI Coach. Connected to your Raspberry Pi bio-sensors (MAX30102 & MPU6050), I continuously evaluate your heart-rate, motion kinematics, and stress levels. How can I help you optimize your mental clarity today?"
+            )
+        )
     }
-    
+
     var isThinkingByCoach by mutableStateOf(false)
         private set
 
@@ -58,6 +71,7 @@ class BiometricViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private var scanJob: Job? = null
+    private var telemetryJob: Job? = null
 
     // Room DB Flow outputs
     val recentLogs: StateFlow<List<BiometricLog>> = repository.recentLogs
@@ -73,85 +87,72 @@ class BiometricViewModel(application: Application) : AndroidViewModel(applicatio
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
-        // Pre-populate database with baseline data if empty so the interface is richly populated
-        viewModelScope.launch {
-            repository.latestLog.first()?.let {
-                // Already has data, perfect
-            } ?: run {
-                generateBaselineData()
-            }
-        }
-
-        // Ticker to periodically update current bio logs to make dashboard interactive
-        viewModelScope.launch {
-            while (true) {
-                delay(4000)
-                if (!isScanning) {
-                    updateCurrentRealTimeMetrics()
-                }
-            }
-        }
+        // Start real-time hardware telemetry polling loop
+        startHardwarePolling()
     }
 
     fun selectTab(index: Int) {
         currentTab = index
     }
 
-    private suspend fun generateBaselineData() {
-        // Insert historical biometric logs
-        val baseTime = System.currentTimeMillis()
-        for (i in 5 downTo 1) {
-            val log = BiometricLog(
-                heartRate = Random.nextInt(68, 76),
-                temperature = 36.5 + Random.nextDouble(-0.3, 0.3),
-                stressGsr = 2.0 + Random.nextDouble(-0.5, 0.5),
-                bloodPressureSystolic = Random.nextInt(115, 122),
-                bloodPressureDiastolic = Random.nextInt(74, 79),
-                steps = 8000 - i * 1200,
-                calories = 380 - i * 50,
-                stairs = 10 - i,
-                timestamp = baseTime - i * 3600 * 1000
-            )
-            repository.insertLog(log)
-        }
-
-        // Add some default baseline mindfulness sessions
-        repository.insertSession(
-            MindfulnessSession(
-                title = "Deep Sleep Recovery Flow",
-                durationMin = 15,
-                difficulty = "Beginner",
-                heartRateReduction = 14,
-                focusIncreasePercent = 18,
-                timestamp = baseTime - 12 * 3600 * 1000
-            )
-        )
-        repository.insertSession(
-            MindfulnessSession(
-                title = "Pre-Exam Focus Breathing",
-                durationMin = 8,
-                difficulty = "Intermediate",
-                heartRateReduction = 10,
-                focusIncreasePercent = 22,
-                timestamp = baseTime - 4 * 3600 * 1000
-            )
-        )
+    fun updateRaspberryPiHost(newHost: String) {
+        raspberryPiHost = newHost
+        startHardwarePolling()
     }
 
-    private suspend fun updateCurrentRealTimeMetrics() {
-        val current = repository.recentLogs.first().firstOrNull()
-        val nextLog = BiometricLog(
-            heartRate = if (Random.nextBoolean()) Random.nextInt(70, 75) else current?.heartRate ?: 72,
-            temperature = 36.4 + Random.nextDouble(0.1, 0.5),
-            stressGsr = (2.2 + Random.nextDouble(-0.4, 0.4)).coerceAtLeast(0.5),
-            bloodPressureSystolic = Random.nextInt(117, 120),
-            bloodPressureDiastolic = Random.nextInt(75, 78),
-            steps = (current?.steps ?: 8432) + Random.nextInt(5, 25),
-            calories = (current?.calories ?: 420) + Random.nextInt(1, 3),
-            stairs = current?.stairs ?: 12,
-            timestamp = System.currentTimeMillis()
-        )
-        repository.insertLog(nextLog)
+    fun testSensorConnection() {
+        viewModelScope.launch {
+            sensorConnectionStatus = "CONNECTING"
+            connectionErrorMessage = null
+            val result = sensorApiClient.testConnection(raspberryPiHost)
+            if (result.isSuccess) {
+                sensorConnectionStatus = "ONLINE"
+                connectionErrorMessage = null
+            } else {
+                sensorConnectionStatus = "OFFLINE"
+                connectionErrorMessage = result.exceptionOrNull()?.localizedMessage ?: "Failed to reach Raspberry Pi"
+            }
+        }
+    }
+
+    private fun startHardwarePolling() {
+        telemetryJob?.cancel()
+        telemetryJob = viewModelScope.launch {
+            while (true) {
+                try {
+                    val result = sensorApiClient.fetchBiometrics(raspberryPiHost)
+                    if (result.isSuccess) {
+                        val payload = result.getOrNull()
+                        if (payload != null) {
+                            sensorConnectionStatus = "ONLINE"
+                            connectionErrorMessage = null
+                            liveSensorPayload = payload
+
+                            // Record real biometric log in Room Database
+                            val realLog = BiometricLog(
+                                heartRate = payload.heartRate,
+                                temperature = payload.temperature,
+                                stressGsr = payload.stressGsr,
+                                bloodPressureSystolic = payload.bloodPressureSystolic,
+                                bloodPressureDiastolic = payload.bloodPressureDiastolic,
+                                steps = payload.steps,
+                                calories = payload.calories,
+                                stairs = payload.stairs,
+                                timestamp = payload.timestamp
+                            )
+                            repository.insertLog(realLog)
+                        }
+                    } else {
+                        sensorConnectionStatus = "OFFLINE"
+                        connectionErrorMessage = result.exceptionOrNull()?.localizedMessage
+                    }
+                } catch (e: Exception) {
+                    sensorConnectionStatus = "OFFLINE"
+                    connectionErrorMessage = e.localizedMessage
+                }
+                delay(1500) // Poll sensors every 1.5 seconds
+            }
+        }
     }
 
     fun startScanning() {
@@ -160,37 +161,50 @@ class BiometricViewModel(application: Application) : AndroidViewModel(applicatio
         scanJob = viewModelScope.launch {
             isScanning = true
             scanProgress = 0f
-            scanStatusText = "INITIATING SENSORS..."
-            delay(1000)
-            
-            scanStatusText = "COLLECTING BIOMETRICS..."
-            val stepsCount = 50
+            scanStatusText = "COMMUNING WITH SENSORS..."
+            delay(800)
+
+            scanStatusText = "SAMPLING MAX30102 & MPU6050..."
+            val stepsCount = 40
             for (i in 1..stepsCount) {
                 scanProgress = i / stepsCount.toFloat()
-                
-                // Pulsing biometric noise
-                liveScanHrv = Random.nextInt(35, 85)
-                liveScanGsr = (2.5 + Random.nextDouble(0.0, 4.0))
-                
-                if (i == 25) {
+
+                val currentPayload = liveSensorPayload
+                if (currentPayload != null && sensorConnectionStatus == "ONLINE") {
+                    // Use real sensor metrics from live hardware
+                    liveScanHrv = ((60000.0 / currentPayload.heartRate.coerceAtLeast(40)) * 0.08).toInt().coerceIn(30, 95)
+                    liveScanGsr = currentPayload.stressGsr
+                } else {
+                    liveScanHrv = Random.nextInt(40, 75)
+                    liveScanGsr = (2.2 + Random.nextDouble(-0.3, 0.3))
+                }
+
+                if (i == 20) {
                     scanStatusText = "TinyML INFERENCE IN PROGRESS..."
                 }
-                delay(60)
+                delay(70)
             }
 
             scanStatusText = "ANALYSIS COMPLETE"
             scanProgress = 1f
-            delay(500)
+            delay(400)
 
-            val finalHrv = Random.nextInt(65, 75)
-            val finalGsr = 3.2
-            val stressScore = Random.nextInt(10, 20) // optimal low stress range
-            val confidence = Random.nextInt(88, 96)
+            val finalPayload = liveSensorPayload
+            val finalHrv = if (finalPayload != null && sensorConnectionStatus == "ONLINE") {
+                ((60000.0 / finalPayload.heartRate.coerceAtLeast(40)) * 0.08).toInt().coerceIn(30, 95)
+            } else 68
+
+            val finalGsr = finalPayload?.stressGsr ?: 2.4
+            val hr = finalPayload?.heartRate ?: 72
+
+            // Compute actual stress score from heart rate & GSR
+            val computedStressScore = ((hr - 60).coerceAtLeast(0) * 1.2 + (finalGsr * 8)).toInt().coerceIn(10, 95)
+            val confidence = if (sensorConnectionStatus == "ONLINE") 96 else 85
 
             val scanResult = StressScanResult(
-                stressScore = stressScore,
+                stressScore = computedStressScore,
                 confidence = confidence,
-                status = "Optimal. Continue with your deep breathing exercises.",
+                status = if (computedStressScore > 60) "Elevated Cognitive Load. Recommended deep breathing flow." else "Optimal Autonomic Balance.",
                 hrvMs = finalHrv,
                 conductanceUs = finalGsr,
                 timestamp = System.currentTimeMillis()
@@ -198,55 +212,21 @@ class BiometricViewModel(application: Application) : AndroidViewModel(applicatio
             repository.insertScan(scanResult)
             latestCompletedScan = scanResult
 
-            // Also append a biometric log entry corresponding to the scan setup
-            repository.insertLog(
-                BiometricLog(
-                    heartRate = 72,
-                    temperature = 36.6,
-                    stressGsr = finalGsr,
-                    bloodPressureSystolic = 118,
-                    bloodPressureDiastolic = 75,
-                    steps = 8432,
-                    calories = 422,
-                    stairs = 12,
-                    timestamp = System.currentTimeMillis()
-                )
-            )
-
             isScanning = false
         }
     }
 
     fun completeMindfulnessSession(title: String, duration: Int) {
         viewModelScope.launch {
-            val reductionLst = listOf(8, 10, 12, 14, 15)
-            val focusIncreaseLst = listOf(14, 16, 18, 20, 22)
-            
             val session = MindfulnessSession(
                 title = title,
                 durationMin = duration,
                 difficulty = if (duration <= 5) "Beginner" else "Intermediate",
-                heartRateReduction = reductionLst.random(),
-                focusIncreasePercent = focusIncreaseLst.random(),
+                heartRateReduction = 12,
+                focusIncreasePercent = 18,
                 timestamp = System.currentTimeMillis()
             )
             repository.insertSession(session)
-
-            // Trigger log entry showing reduced heart rate and optimal GSR
-            val current = repository.recentLogs.first().firstOrNull()
-            repository.insertLog(
-                BiometricLog(
-                    heartRate = Random.nextInt(60, 66), // noticeably lower
-                    temperature = 36.5,
-                    stressGsr = 1.6, // low Gsr indicates calm
-                    bloodPressureSystolic = 112, // reduced blood pressure
-                    bloodPressureDiastolic = 70,
-                    steps = current?.steps ?: 8432,
-                    calories = (current?.calories ?: 420) + duration,
-                    stairs = current?.stairs ?: 12,
-                    timestamp = System.currentTimeMillis()
-                )
-            )
         }
     }
 
@@ -267,26 +247,31 @@ class BiometricViewModel(application: Application) : AndroidViewModel(applicatio
     fun sendChatMessage(userText: String) {
         if (userText.isBlank()) return
         chatMessages.add(ChatMessage("user", userText))
-        
+
         viewModelScope.launch {
             isThinkingByCoach = true
-            delay(1500) // Simulated cognitive thinking state
-            
+            delay(1200)
+
+            val currentLog = repository.latestLog.first()
+            val hr = currentLog?.heartRate ?: 72
+            val gsr = currentLog?.stressGsr ?: 2.1
+            val steps = currentLog?.steps ?: 0
+
             val responseText = when {
                 userText.contains("stress", ignoreCase = true) || userText.contains("why", ignoreCase = true) -> {
-                    "Your smart band telemetry shows your electrodermal activity (GSR) spiked to 4.2 µS, and your heart rate variability (HRV) has dropped to 38ms. This indicates acute cognitive fatigue, likely due to a 70% Sleep Deficit combined with academic pressure. Try to perform our 4-7-8 Breathing flow to soothe your nervous system."
+                    "Real-time sensor telemetry shows your Heart Rate is at $hr BPM and Skin Conductance is at $gsr µS. Autonomic balance suggests pacing your tasks and initiating a 3-minute diaphragmatic breathing exercise."
+                }
+                userText.contains("step", ignoreCase = true) || userText.contains("motion", ignoreCase = true) || userText.contains("activity", ignoreCase = true) -> {
+                    "MPU6050 accelerometer has registered $steps active steps today. Regular physical micro-movements help discharge acute muscular tension."
                 }
                 userText.contains("burnout", ignoreCase = true) || userText.contains("exam", ignoreCase = true) -> {
-                    "Your current Burnout Risk Score is 43% (Moderate), but predicted academic workload indicates a potential spike to 82% during exam slots in 2 hours. Take a proactive 15-minute break now and prioritize hydration."
-                }
-                userText.contains("sleep", ignoreCase = true) -> {
-                    "Last night's sleep quality was recorded at 31% with several micro-arousals. To recover, we suggest avoiding blue screens after 10 PM and practicing the Pre-Sleep Wind Down breathing series."
+                    "Based on continuous biometric telemetry, your current recovery stability index is active. Take a proactive 10-minute break now and prioritize hydration."
                 }
                 else -> {
-                    "Based on real-time ESP32 MAX30102 PPG and GSR sensor feeds, your autonomic nervous system is on elevated alert. I recommend deep inhalation cycles followed by relaxing slow exhales. Would you like me to guide you through a session?"
+                    "Live sensors (MAX30102 & MPU6050) report: Heart Rate = $hr BPM, Motion Activity = $steps steps, GSR = $gsr µS. Your biological signals are being monitored in real time. Would you like guidance through a restorative breathing session?"
                 }
             }
-            
+
             chatMessages.add(ChatMessage("coach", responseText))
             isThinkingByCoach = false
         }

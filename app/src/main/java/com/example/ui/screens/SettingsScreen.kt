@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.BiometricViewModel
 import com.example.ui.components.GlassmorphicCard
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     viewModel: BiometricViewModel,
@@ -36,9 +37,14 @@ fun SettingsScreen(
     var activeActionTitle by remember { mutableStateOf<String?>(null) }
     var activeActionDesc by remember { mutableStateOf<String?>(null) }
 
+    var ipInputValue by remember(viewModel.raspberryPiHost) { mutableStateOf(viewModel.raspberryPiHost) }
+
     var soundEffectsEnabled by remember { mutableStateOf(true) }
     var vibrationGuidanceEnabled by remember { mutableStateOf(true) }
     var notificationFeedsEnabled by remember { mutableStateOf(true) }
+
+    val livePayload = viewModel.liveSensorPayload
+    val isOnline = viewModel.sensorConnectionStatus == "ONLINE"
 
     LazyColumn(
         modifier = Modifier
@@ -60,7 +66,7 @@ fun SettingsScreen(
                         .padding(horizontal = 12.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        "NEURO CONSOLE",
+                        "HARDWARE CONTROL CENTER",
                         color = Color(0xFF06B6D4),
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
@@ -71,7 +77,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = "Control Center",
+                    text = "Sensor Bridge",
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Black,
                     color = Color.White,
@@ -82,10 +88,186 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "Configure your ESP32 smart band and inspect active stress metrics recommendations.",
+                    text = "Configure your Raspberry Pi sensor bridge and stream real-time MAX30102 & MPU6050 biometrics.",
                     fontSize = 14.sp,
                     color = Color(0xFF64748B)
                 )
+            }
+        }
+
+        // RASPBERRY PI NETWORK CONFIGURATION CARD
+        item {
+            GlassmorphicCard(
+                modifier = Modifier.fillMaxWidth(),
+                glowColor = if (isOnline) Color(0x3306B6D4) else Color(0x22EF4444)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (isOnline) Icons.Rounded.Wifi else Icons.Rounded.WifiOff,
+                                contentDescription = null,
+                                tint = if (isOnline) Color(0xFF06B6D4) else Color(0xFFEF4444),
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "Raspberry Pi Sensor Node",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = "LAN REST API • Port 5000",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF64748B)
+                                )
+                            }
+                        }
+
+                        // Connection Status Badge
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    when (viewModel.sensorConnectionStatus) {
+                                        "ONLINE" -> Color(0xFF22C55E).copy(alpha = 0.18f)
+                                        "CONNECTING" -> Color(0xFFEAB308).copy(alpha = 0.18f)
+                                        else -> Color(0xFFEF4444).copy(alpha = 0.18f)
+                                    },
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .border(
+                                    1.dp,
+                                    when (viewModel.sensorConnectionStatus) {
+                                        "ONLINE" -> Color(0xFF22C55E).copy(alpha = 0.4f)
+                                        "CONNECTING" -> Color(0xFFEAB308).copy(alpha = 0.4f)
+                                        else -> Color(0xFFEF4444).copy(alpha = 0.4f)
+                                    },
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .padding(horizontal = 10.dp, vertical = 5.dp)
+                        ) {
+                            Text(
+                                text = viewModel.sensorConnectionStatus,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black,
+                                color = when (viewModel.sensorConnectionStatus) {
+                                    "ONLINE" -> Color(0xFF22C55E)
+                                    "CONNECTING" -> Color(0xFFEAB308)
+                                    else -> Color(0xFFEF4444)
+                                }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // IP Address Input Field
+                    OutlinedTextField(
+                        value = ipInputValue,
+                        onValueChange = { ipInputValue = it },
+                        label = { Text("Raspberry Pi IP Address / Host", fontSize = 12.sp, color = Color(0xFF94A3B8)) },
+                        placeholder = { Text("192.168.1.50 or 10.0.2.2", color = Color(0xFF475569)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color(0xFF06B6D4),
+                            unfocusedBorderColor = Color(0xFF334155),
+                            focusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.8f),
+                            unfocusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.8f)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Quick Presets
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                ipInputValue = "10.0.2.2"
+                                viewModel.updateRaspberryPiHost("10.0.2.2")
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF1E293B),
+                                contentColor = Color(0xFF94A3B8)
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Emulator (10.0.2.2)", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = {
+                                viewModel.updateRaspberryPiHost(ipInputValue)
+                                viewModel.testSensorConnection()
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF06B6D4),
+                                contentColor = Color(0xFF0F172A)
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(imageVector = Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Connect", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    if (viewModel.connectionErrorMessage != null && !isOnline) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "Connection Error: ${viewModel.connectionErrorMessage}",
+                            fontSize = 11.sp,
+                            color = Color(0xFFEF4444)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+                    Text("CONNECTED I2C HARDWARE SENSORS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    SensorStatusRow(label = "MAX30102 (PPG / Heart Rate & SpO2)", active = isOnline)
+                    SensorStatusRow(label = "MPU6050 (6-Axis IMU Accelerometer + Gyro)", active = isOnline)
+
+                    if (livePayload != null && isOnline) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("LIVE HARDWARE TELEMETRY STREAM", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF06B6D4))
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            DevicePropertyColumn("Heart Rate", "${livePayload.heartRate} BPM")
+                            DevicePropertyColumn("Steps", "${livePayload.steps}")
+                            DevicePropertyColumn("Stress GSR", "${livePayload.stressGsr} µS")
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            DevicePropertyColumn("Accel Net", "${livePayload.acceleration} g")
+                            DevicePropertyColumn("Accel XYZ", "(${livePayload.ax}, ${livePayload.ay}, ${livePayload.az})")
+                            DevicePropertyColumn("Raw IR", "${livePayload.rawIr}")
+                        }
+                    }
+                }
             }
         }
 
@@ -183,74 +365,7 @@ fun SettingsScreen(
             }
         }
 
-        // ESP32 SMART BAND HARDWARE STATUS
-        item {
-            GlassmorphicCard(
-                modifier = Modifier.fillMaxWidth(),
-                glowColor = Color(0x1106B6D4)
-            ) {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Rounded.BluetoothConnected,
-                                contentDescription = null,
-                                tint = Color(0xFF06B6D4),
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Band Connectivity Link",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .background(Color(0xFF06B6D4).copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                "ONLINE",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Black,
-                                color = Color(0xFF06B6D4)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(18.dp))
-
-                    // Details
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        DevicePropertyColumn("Bluetooth Node", "ESP32-NeuroBand")
-                        DevicePropertyColumn("Battery Status", "88% (Normal)")
-                        DevicePropertyColumn("Firmware Version", "v1.4.2-TinyML")
-                    }
-
-                    Spacer(modifier = Modifier.height(18.dp))
-                    Text("ACTIVE CORE SENSORS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    SensorStatusRow(label = "MAX30102 PPG Heart Rate", active = true)
-                    SensorStatusRow(label = "EDA / GSR Electrodes", active = true)
-                    SensorStatusRow(label = "MLX90614 Skin Temp", active = true)
-                    SensorStatusRow(label = "MPU6050 Accelerometer", active = true)
-                    SensorStatusRow(label = "Haptic Micro Actuator", active = true)
-                }
-            }
-        }
-
-        // RECOMMENDATIONS LIBRARY LAYOUT (Sleep, Stress, Recovery, Focus, Burnout)
+        // RECOMMENDATIONS LIBRARY LAYOUT
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
@@ -367,9 +482,9 @@ fun SettingsScreen(
 @Composable
 fun DevicePropertyColumn(label: String, value: String) {
     Column {
-        Text(label, fontSize = 11.sp, color = Color(0xFF64748B))
+        Text(label, fontSize = 10.sp, color = Color(0xFF64748B))
         Spacer(modifier = Modifier.height(2.dp))
-        Text(value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
     }
 }
 
@@ -387,13 +502,13 @@ fun SensorStatusRow(label: String, active: Boolean) {
             Box(
                 modifier = Modifier
                     .size(6.dp)
-                    .background(if (active) Color(0xFF22C55E) else Color(0xFF64748B), CircleShape)
+                    .background(if (active) Color(0xFF22C55E) else Color(0xFFEF4444), CircleShape)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = if (active) "ACTIVE" else "STANDBY",
+                text = if (active) "ONLINE" else "OFFLINE",
                 fontSize = 10.sp,
-                color = if (active) Color(0xFF22C55E) else Color(0xFF64748B),
+                color = if (active) Color(0xFF22C55E) else Color(0xFFEF4444),
                 fontWeight = FontWeight.Bold
             )
         }
