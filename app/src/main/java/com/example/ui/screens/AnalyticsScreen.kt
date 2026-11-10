@@ -51,6 +51,12 @@ fun AnalyticsScreen(
     val context = LocalContext.current
     val latestLog by viewModel.latestLog.collectAsStateWithLifecycle(initialValue = null)
 
+    val isDark = viewModel.isDarkTheme
+    val primaryTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+    val secondaryTextColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
+    val chipBg = if (isDark) Color(0xFF1E293B).copy(alpha = 0.6f) else Color.White.copy(alpha = 0.95f)
+    val chipBorder = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)
+
     // Interactive circadian heatmap selection state
     var selectedDayName by remember { mutableStateOf<String?>("Tuesday") }
     var selectedHourName by remember { mutableStateOf<String?>("Noon (12PM)") }
@@ -101,7 +107,7 @@ fun AnalyticsScreen(
                             text = "Stress Intelligence",
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Black,
-                            color = Color.White
+                            color = primaryTextColor
                         )
                     }
                     Box(
@@ -135,11 +141,11 @@ fun AnalyticsScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(99.dp))
                                 .background(
-                                    if (isSelected) Color(0xFF06B6D4) else Color(0xFF1E293B).copy(alpha = 0.6f)
+                                    if (isSelected) (if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7)) else chipBg
                                 )
                                 .border(
                                     1.dp,
-                                    if (isSelected) Color(0xFF06B6D4) else Color(0xFF334155),
+                                    if (isSelected) (if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7)) else chipBorder,
                                     RoundedCornerShape(99.dp)
                                 )
                                 .clickable { viewModel.selectedDashboardSection = section }
@@ -147,7 +153,7 @@ fun AnalyticsScreen(
                         ) {
                             Text(
                                 text = section,
-                                color = if (isSelected) Color(0xFF0F172A) else Color(0xFF94A3B8),
+                                color = if (isSelected) Color.White else secondaryTextColor,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -170,10 +176,14 @@ fun AnalyticsScreen(
         ) {
             when (viewModel.selectedDashboardSection) {
                 "Core Dashboard" -> {
-                    val currentHr = latestLog?.heartRate ?: (viewModel.liveSensorPayload?.heartRate ?: 72)
-                    val currentGsr = latestLog?.stressGsr ?: (viewModel.liveSensorPayload?.stressGsr ?: 2.1)
-                    val currentSteps = latestLog?.steps ?: (viewModel.liveSensorPayload?.steps ?: 0)
-                    val currentTemp = latestLog?.temperature ?: (viewModel.liveSensorPayload?.temperature ?: 36.6)
+                    val livePayload = viewModel.liveSensorPayload
+                    val currentHr = latestLog?.heartRate ?: (livePayload?.heartRate ?: 72)
+                    val currentGsr = latestLog?.stressGsr ?: (livePayload?.stressGsr ?: 2.1)
+                    val currentSteps = latestLog?.steps ?: (livePayload?.steps ?: 0)
+                    val currentTemp = latestLog?.temperature ?: (livePayload?.temperature ?: 36.6)
+                    val currentSpo2 = livePayload?.spO2 ?: 98
+                    val currentGyro = livePayload?.gyro ?: 0.0
+                    val currentAccel = livePayload?.acceleration ?: 1.0
                     val dynamicStressPercent = ((currentHr - 55).coerceAtLeast(0) * 1.3 + currentGsr * 6).toInt().coerceIn(15, 95)
                     val isHighStress = dynamicStressPercent > 65
 
@@ -241,7 +251,7 @@ fun AnalyticsScreen(
                                             "$dynamicStressPercent%",
                                             fontSize = 22.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color.White
+                                            color = primaryTextColor
                                         )
                                         Text(if (isHighStress) "ELEVATED" else "CALM", fontSize = 8.sp, color = if (isHighStress) Color(0xFFEF4444) else Color(0xFF06B6D4))
                                     }
@@ -264,11 +274,15 @@ fun AnalyticsScreen(
                             // Grid Rows
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 KpiCard(modifier = Modifier.weight(1f), title = "Heart Rate", value = "$currentHr BPM", desc = if (currentHr > 85) "Elevated Pulse" else "Optimal Baseline", icon = Icons.Rounded.Favorite, tint = Color(0xFF06B6D4))
-                                KpiCard(modifier = Modifier.weight(1f), title = "Stress GSR", value = "$currentGsr µS", desc = "Skin Conductance", icon = Icons.Rounded.MonitorHeart, tint = Color(0xFF8B5CF6))
+                                KpiCard(modifier = Modifier.weight(1f), title = "SpO2 Oxygen", value = "$currentSpo2%", desc = "Blood Saturation", icon = Icons.Rounded.Air, tint = Color(0xFF38BDF8))
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                KpiCard(modifier = Modifier.weight(1f), title = "Skin Temp", value = "$currentTemp °C", desc = "Thermal Surface", icon = Icons.Rounded.Thermostat, tint = Color(0xFF3B82F6))
+                                KpiCard(modifier = Modifier.weight(1f), title = "Stress GSR", value = "$currentGsr µS", desc = "Skin Conductance", icon = Icons.Rounded.MonitorHeart, tint = Color(0xFF8B5CF6))
+                                KpiCard(modifier = Modifier.weight(1f), title = "Skin Temp", value = "$currentTemp °C", desc = "Thermal Surface", icon = Icons.Rounded.Thermostat, tint = Color(0xFFF59E0B))
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 KpiCard(modifier = Modifier.weight(1f), title = "Motion Steps", value = "$currentSteps", desc = "MPU6050 Count", icon = Icons.Rounded.DirectionsRun, tint = Color(0xFF10B981))
+                                KpiCard(modifier = Modifier.weight(1f), title = "Gyro & Accel", value = "$currentGyro °/s", desc = "$currentAccel g Net Force", icon = Icons.Rounded.Explore, tint = Color(0xFFEC4899))
                             }
                         }
                     }
@@ -283,7 +297,7 @@ fun AnalyticsScreen(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Column {
-                                        Text("Bio-Sensor Streaming", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        Text("Bio-Sensor Streaming", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
                                         Text("PPG and Skin Conductance Trend", fontSize = 11.sp, color = Color(0xFF94A3B8))
                                     }
                                     Icon(
@@ -350,7 +364,7 @@ fun AnalyticsScreen(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Column {
-                                        Text("Weekly Stress Density", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        Text("Weekly Stress Density", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
                                         Text("Daily averages and active recovery benchmarks", fontSize = 12.sp, color = Color(0xFF94A3B8))
                                     }
                                     Icon(
@@ -412,7 +426,7 @@ fun AnalyticsScreen(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Column {
-                                        Text("Circadian Stress Matrix", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        Text("Circadian Stress Matrix", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
                                         Text("Click cells to inspect specific stress triggers", fontSize = 12.sp, color = Color(0xFF94A3B8))
                                     }
                                     Icon(
@@ -564,7 +578,7 @@ fun AnalyticsScreen(
                                                 text = "${selectedDayName ?: "Tuesday"} at ${selectedHourName ?: "Noon (12PM)"}",
                                                 fontSize = 13.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color.White
+                                                color = primaryTextColor
                                             )
                                             val badgeColor = when {
                                                 (selectedCellStressScore ?: 0) <= 30 -> Color(0xFF06B6D4)
@@ -618,7 +632,7 @@ fun AnalyticsScreen(
                             glowColor = Color(0x228B5CF6)
                         ) {
                             Column {
-                                Text("Why Am I Stressed?", fontSize = 20.sp, fontWeight = FontWeight.Black, color = Color.White)
+                                Text("Why Am I Stressed?", fontSize = 20.sp, fontWeight = FontWeight.Black, color = primaryTextColor)
                                 Text("AI-driven multi-source cognitive attribution", fontSize = 12.sp, color = Color(0xFF94A3B8))
 
                                 Spacer(modifier = Modifier.height(24.dp))
@@ -657,7 +671,7 @@ fun AnalyticsScreen(
                                         )
                                     }
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text("70%", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        Text("70%", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
                                         Text("Sleep deficit", fontSize = 8.sp, color = Color(0xFF06B6D4), fontWeight = FontWeight.Bold)
                                     }
                                 }
@@ -736,7 +750,7 @@ fun AnalyticsScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Column {
-                                            Text("24h Stress Forecast Curve", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                            Text("24h Stress Forecast Curve", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
                                             Text("Tap hour pins below to slide forecasting indicators", fontSize = 12.sp, color = Color(0xFF94A3B8))
                                         }
                                         Icon(imageVector = Icons.Rounded.Timeline, contentDescription = null, tint = Color(0xFF06B6D4))
@@ -910,7 +924,7 @@ fun AnalyticsScreen(
                                             ) {
                                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                                     Text("Stress Load", fontSize = 10.sp, color = Color(0xFF64748B))
-                                                    Text("${currentPoint.stressScore}%", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                                    Text("${currentPoint.stressScore}%", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
                                                 }
                                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                                     Text("Skin GSR", fontSize = 10.sp, color = Color(0xFF64748B))
@@ -945,7 +959,7 @@ fun AnalyticsScreen(
                             glowColor = Color(0x228B5CF6)
                         ) {
                             Column {
-                                Text("Student Intelligence Intel", fontSize = 18.sp, fontWeight = FontWeight.Black, color = Color.White)
+                                Text("Student Intelligence Intel", fontSize = 18.sp, fontWeight = FontWeight.Black, color = primaryTextColor)
                                 Text("Attributions relative to class terms & exams", fontSize = 11.sp, color = Color(0xFF94A3B8))
 
                                 Spacer(modifier = Modifier.height(20.dp))
@@ -989,7 +1003,7 @@ fun AnalyticsScreen(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Column {
-                                        Text("Sleep Chronotype Analysis", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        Text("Sleep Chronotype Analysis", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
                                         Text("Based on accelerometer sleep latency", fontSize = 11.sp, color = Color(0xFF94A3B8))
                                     }
                                     Icon(imageVector = Icons.Rounded.Bedtime, contentDescription = null, tint = Color(0xFF06B6D4))
@@ -1037,7 +1051,7 @@ fun AnalyticsScreen(
                             glowColor = Color(0x22EF4444)
                         ) {
                             Column {
-                                Text("Predictive Burnout Registry", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color.White)
+                                Text("Predictive Burnout Registry", fontSize = 16.sp, fontWeight = FontWeight.Black, color = primaryTextColor)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text("Attributions to autonomic system weardown", fontSize = 11.sp, color = Color(0xFF94A3B8))
 
@@ -1124,11 +1138,15 @@ fun KpiCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     tint: Color
 ) {
+    val isDark = androidx.compose.material3.MaterialTheme.colorScheme.background == com.example.ui.theme.ColorBackground
+    val cardBg = if (isDark) Color(0xFF0F172A).copy(alpha = 0.8f) else Color.White.copy(alpha = 0.95f)
+    val cardBorder = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0)
+    val primaryText = if (isDark) Color.White else Color(0xFF0F172A)
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF0F172A).copy(alpha = 0.8f))
-            .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(16.dp))
+            .background(cardBg)
+            .border(1.dp, cardBorder, RoundedCornerShape(16.dp))
             .padding(14.dp)
     ) {
         Column {
@@ -1140,7 +1158,7 @@ fun KpiCard(
                 Text(
                     text = title,
                     fontSize = 11.sp,
-                    color = Color(0xFF94A3B8),
+                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -1157,7 +1175,7 @@ fun KpiCard(
                 text = value,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = primaryText
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
@@ -1186,11 +1204,14 @@ fun LegendItem(color: Color, text: String) {
 
 @Composable
 fun PredictionRiskRow(title: String, risk: String, color: Color, reason: String) {
+    val isDark = androidx.compose.material3.MaterialTheme.colorScheme.background == com.example.ui.theme.ColorBackground
+    val cardBg = if (isDark) Color(0xFF0F172A).copy(alpha = 0.8f) else Color.White.copy(alpha = 0.95f)
+    val cardBorder = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0)
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFF0F172A).copy(alpha = 0.8f), RoundedCornerShape(14.dp))
-            .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
+            .background(cardBg, RoundedCornerShape(14.dp))
+            .border(1.dp, cardBorder, RoundedCornerShape(14.dp))
             .padding(12.dp)
     ) {
         Row(
@@ -1239,11 +1260,12 @@ fun MiniRadialGauge(label: String, value: Float, color: Color) {
                     style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
                 )
             }
+            val isDark = androidx.compose.material3.MaterialTheme.colorScheme.background == com.example.ui.theme.ColorBackground
             Text(
                 "${value.toInt()}%",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = if (isDark) Color.White else Color(0xFF0F172A)
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
@@ -1273,7 +1295,8 @@ fun StudentInsightRow(title: String, desc: String) {
         )
         Spacer(modifier = Modifier.width(10.dp))
         Column {
-            Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            val isDark = androidx.compose.material3.MaterialTheme.colorScheme.background == com.example.ui.theme.ColorBackground
+            Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color.White else Color(0xFF0F172A))
             Text(desc, fontSize = 11.sp, color = Color(0xFF94A3B8), lineHeight = 15.sp)
         }
     }
@@ -1287,7 +1310,8 @@ fun SleepMetricColumn(label: String, value: String, color: Color) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.size(6.dp).background(color, CircleShape))
             Spacer(modifier = Modifier.width(6.dp))
-            Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            val isDark = androidx.compose.material3.MaterialTheme.colorScheme.background == com.example.ui.theme.ColorBackground
+            Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color.White else Color(0xFF0F172A))
         }
     }
 }
@@ -1296,11 +1320,15 @@ fun SleepMetricColumn(label: String, value: String, color: Color) {
 fun ReportFileRow(title: String, date: String, format: String) {
     val context = LocalContext.current
     var isDownloaded by remember { mutableStateOf(false) }
+    val isDark = androidx.compose.material3.MaterialTheme.colorScheme.background == com.example.ui.theme.ColorBackground
+    val cardBg = if (isDark) Color(0xFF0F172A).copy(alpha = 0.8f) else Color.White.copy(alpha = 0.95f)
+    val cardBorder = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0)
+    val primaryText = if (isDark) Color.White else Color(0xFF0F172A)
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFF0F172A).copy(alpha = 0.8f), RoundedCornerShape(14.dp))
-            .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
+            .background(cardBg, RoundedCornerShape(14.dp))
+            .border(1.dp, cardBorder, RoundedCornerShape(14.dp))
             .padding(14.dp)
     ) {
         Row(
@@ -1312,12 +1340,12 @@ fun ReportFileRow(title: String, date: String, format: String) {
                 Icon(
                     imageVector = Icons.Rounded.CloudDownload,
                     contentDescription = null,
-                    tint = Color(0xFF06B6D4),
+                    tint = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7),
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
-                    Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = primaryText)
                     Text("$date • $format", fontSize = 10.sp, color = Color(0xFF64748B))
                 }
             }

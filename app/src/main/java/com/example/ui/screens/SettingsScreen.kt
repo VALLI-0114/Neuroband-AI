@@ -19,10 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.BiometricViewModel
@@ -34,14 +31,14 @@ fun SettingsScreen(
     viewModel: BiometricViewModel,
     innerPadding: PaddingValues
 ) {
+    val isDark = viewModel.isDarkTheme
+    val primaryTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+    val secondaryTextColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+
     var activeActionTitle by remember { mutableStateOf<String?>(null) }
     var activeActionDesc by remember { mutableStateOf<String?>(null) }
 
     var ipInputValue by remember(viewModel.raspberryPiHost) { mutableStateOf(viewModel.raspberryPiHost) }
-
-    var soundEffectsEnabled by remember { mutableStateOf(true) }
-    var vibrationGuidanceEnabled by remember { mutableStateOf(true) }
-    var notificationFeedsEnabled by remember { mutableStateOf(true) }
 
     val livePayload = viewModel.liveSensorPayload
     val isOnline = viewModel.sensorConnectionStatus == "ONLINE"
@@ -54,7 +51,7 @@ fun SettingsScreen(
             top = innerPadding.calculateTopPadding() + 16.dp,
             bottom = innerPadding.calculateBottomPadding() + 92.dp
         ),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         // Daily Insight Header
         item {
@@ -67,7 +64,7 @@ fun SettingsScreen(
                 ) {
                     Text(
                         "HARDWARE CONTROL CENTER",
-                        color = Color(0xFF06B6D4),
+                        color = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7),
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp
@@ -77,21 +74,488 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = "Sensor Bridge",
-                    fontSize = 36.sp,
+                    text = "Thresholds & Setup",
+                    fontSize = 34.sp,
                     fontWeight = FontWeight.Black,
-                    color = Color.White,
-                    lineHeight = 40.sp,
+                    color = primaryTextColor,
+                    lineHeight = 38.sp,
                     letterSpacing = (-0.5).sp
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "Configure your Raspberry Pi sensor bridge and stream real-time MAX30102 & MPU6050 biometrics.",
-                    fontSize = 14.sp,
-                    color = Color(0xFF64748B)
+                    text = "Adjust safety thresholds, vibration alerts, TTS voice remedies, and configure your Raspberry Pi sensor bridge.",
+                    fontSize = 13.sp,
+                    color = secondaryTextColor
                 )
+            }
+        }
+
+        // THEME & DISPLAY SELECTION CARD (Light vs Dark Mode)
+        item {
+            GlassmorphicCard(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    Text(
+                        "APPEARANCE & THEME",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF64748B),
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(
+                                        if (isDark) Color(0xFF8B5CF6).copy(alpha = 0.2f) else Color(0xFF0284C7).copy(alpha = 0.15f),
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (isDark) Icons.Rounded.DarkMode else Icons.Rounded.LightMode,
+                                    contentDescription = "Theme Icon",
+                                    tint = if (isDark) Color(0xFFA78BFA) else Color(0xFF0284C7),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(14.dp))
+                            Column {
+                                Text(
+                                    text = if (isDark) "Dark Cyber Theme" else "Clean Light Theme",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = primaryTextColor
+                                )
+                                Text(
+                                    text = if (isDark) "Deep Cyber Navy UI active" else "Crisp Light UI active",
+                                    fontSize = 11.sp,
+                                    color = secondaryTextColor
+                                )
+                            }
+                        }
+
+                        Switch(
+                            checked = isDark,
+                            onCheckedChange = { viewModel.toggleTheme() },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFF8B5CF6),
+                                uncheckedThumbColor = Color(0xFF0284C7),
+                                uncheckedTrackColor = Color(0xFFE0F2FE)
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        // SAFETY THRESHOLD LIMITS & WARNING ALARMS CARD
+        item {
+            GlassmorphicCard(
+                modifier = Modifier.fillMaxWidth(),
+                glowColor = Color(0x33F59E0B)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(Color(0xFFF59E0B).copy(alpha = 0.15f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.WarningAmber,
+                                    contentDescription = null,
+                                    tint = Color(0xFFF59E0B),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    "SAFETY THRESHOLDS & ALARM LIMITS",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFFF59E0B),
+                                    letterSpacing = 1.sp
+                                )
+                                Text(
+                                    "Adjust Trigger Limits",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = primaryTextColor
+                                )
+                            }
+                        }
+
+                        TextButton(
+                            onClick = { viewModel.resetThresholdsToDefault() },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                "RESET",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "When sensor readings exceed these limits, the app automatically vibrates, posts a system notification, and speaks actionable remedies via TTS.",
+                        fontSize = 11.sp,
+                        color = secondaryTextColor,
+                        lineHeight = 15.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Temperature Sensor Mode Selector
+                    Text(
+                        "TEMPERATURE SOURCE & THRESHOLD MODE",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        color = primaryTextColor,
+                        letterSpacing = 0.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val isBody = viewModel.tempMonitoringMode == "BODY"
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isBody) (if (isDark) Color(0xFF06B6D4).copy(alpha = 0.25f) else Color(0xFF0284C7).copy(alpha = 0.15f)) else (if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)))
+                                .border(1.5.dp, if (isBody) (if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7)) else Color.Transparent, RoundedCornerShape(12.dp))
+                                .clickable { viewModel.setTempMode("BODY") }
+                                .padding(vertical = 10.dp, horizontal = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    "🌡️ Body Temp Mode",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isBody) (if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7)) else secondaryTextColor
+                                )
+                                Text(
+                                    "Calibrated (~36.6°C • Limit: ${viewModel.maxTempThreshold}°C)",
+                                    fontSize = 9.sp,
+                                    color = secondaryTextColor
+                                )
+                            }
+                        }
+
+                        val isMpu = viewModel.tempMonitoringMode == "MPU_RAW"
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isMpu) (if (isDark) Color(0xFFF59E0B).copy(alpha = 0.25f) else Color(0xFFD97706).copy(alpha = 0.15f)) else (if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)))
+                                .border(1.5.dp, if (isMpu) (if (isDark) Color(0xFFF59E0B) else Color(0xFFD97706)) else Color.Transparent, RoundedCornerShape(12.dp))
+                                .clickable { viewModel.setTempMode("MPU_RAW") }
+                                .padding(vertical = 10.dp, horizontal = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    "⚙️ MPU Hardware Mode",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isMpu) (if (isDark) Color(0xFFF59E0B) else Color(0xFFD97706)) else secondaryTextColor
+                                )
+                                Text(
+                                    "Raw Silicon (~39°C • Limit: ${viewModel.maxMpuTempThreshold}°C)",
+                                    fontSize = 9.sp,
+                                    color = secondaryTextColor
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    if (viewModel.tempMonitoringMode == "BODY") {
+                        // 1. Max Body Temperature
+                        ThresholdStepperRow(
+                            title = "Max Body Temperature",
+                            valueStr = "${viewModel.maxTempThreshold} °C",
+                            note = "Normal: 36.1 - 37.2°C • Fever triggers if breached",
+                            onDecrement = { viewModel.updateMaxTemp(viewModel.maxTempThreshold - 0.1) },
+                            onIncrement = { viewModel.updateMaxTemp(viewModel.maxTempThreshold + 0.1) },
+                            isDark = isDark
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // 2. Min Body Temperature
+                        ThresholdStepperRow(
+                            title = "Min Body Temperature",
+                            valueStr = "${viewModel.minTempThreshold} °C",
+                            note = "Hypothermia warning if below limit",
+                            onDecrement = { viewModel.updateMinTemp(viewModel.minTempThreshold - 0.1) },
+                            onIncrement = { viewModel.updateMinTemp(viewModel.minTempThreshold + 0.1) },
+                            isDark = isDark
+                        )
+                    } else {
+                        // Max MPU6050 Silicon Die Temperature
+                        ThresholdStepperRow(
+                            title = "Max MPU6050 Silicon Temp",
+                            valueStr = "${viewModel.maxMpuTempThreshold} °C",
+                            note = "Raw silicon runs ~38°C–42°C normal heat. Overheat alarm triggers above this limit.",
+                            onDecrement = { viewModel.updateMaxMpuTemp(viewModel.maxMpuTempThreshold - 0.5) },
+                            onIncrement = { viewModel.updateMaxMpuTemp(viewModel.maxMpuTempThreshold + 0.5) },
+                            isDark = isDark
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 3. Max Heart Rate
+                    ThresholdStepperRow(
+                        title = "Max Heart Rate (Tachycardia)",
+                        valueStr = "${viewModel.maxHeartRateThreshold} BPM",
+                        note = "Resting limit: 60 - 100 BPM",
+                        onDecrement = { viewModel.updateMaxHeartRate(viewModel.maxHeartRateThreshold - 5) },
+                        onIncrement = { viewModel.updateMaxHeartRate(viewModel.maxHeartRateThreshold + 5) },
+                        isDark = isDark
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 4. Min Heart Rate
+                    ThresholdStepperRow(
+                        title = "Min Heart Rate (Bradycardia)",
+                        valueStr = "${viewModel.minHeartRateThreshold} BPM",
+                        note = "Low pulse warning if below limit",
+                        onDecrement = { viewModel.updateMinHeartRate(viewModel.minHeartRateThreshold - 5) },
+                        onIncrement = { viewModel.updateMinHeartRate(viewModel.minHeartRateThreshold + 5) },
+                        isDark = isDark
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 5. Min SpO2 Oxygen
+                    ThresholdStepperRow(
+                        title = "Min Blood Oxygen (SpO2)",
+                        valueStr = "${viewModel.minSpo2Threshold}%",
+                        note = "Hypoxia alert if saturation drops below limit",
+                        onDecrement = { viewModel.updateMinSpo2(viewModel.minSpo2Threshold - 1) },
+                        onIncrement = { viewModel.updateMinSpo2(viewModel.minSpo2Threshold + 1) },
+                        isDark = isDark
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 6. Max Stress GSR
+                    ThresholdStepperRow(
+                        title = "Max Stress GSR Conductance",
+                        valueStr = "${viewModel.maxGsrThreshold} µS",
+                        note = "Sympathetic nervous spike threshold",
+                        onDecrement = { viewModel.updateMaxGsr(viewModel.maxGsrThreshold - 0.1) },
+                        onIncrement = { viewModel.updateMaxGsr(viewModel.maxGsrThreshold + 0.1) },
+                        isDark = isDark
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 7. Max Tremor / Gyro
+                    ThresholdStepperRow(
+                        title = "Max Tremor Kinematics (MPU6050)",
+                        valueStr = "${viewModel.maxGyroThreshold} °/s",
+                        note = "Involuntary shake / kinetic threshold",
+                        onDecrement = { viewModel.updateMaxGyro(viewModel.maxGyroThreshold - 5.0) },
+                        onIncrement = { viewModel.updateMaxGyro(viewModel.maxGyroThreshold + 5.0) },
+                        isDark = isDark
+                    )
+                }
+            }
+        }
+
+        // CONSOLE & ALERTS PREFERENCES (Vibration, TTS, Notifications)
+        item {
+            GlassmorphicCard(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    Text(
+                        "ALARM & REMEDY DELIVERY PREFERENCES",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF64748B),
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // TTS Voice Guidance Toggle
+                    ToggleControlRow(
+                        label = "Text-to-Speech (TTS) Voice Remedies",
+                        desc = "Speaks the warning and exact actionable medical remedy aloud hands-free.",
+                        checked = viewModel.ttsVoiceEnabled,
+                        onCheckedChange = { viewModel.ttsVoiceEnabled = it },
+                        isDark = isDark
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Tactile Vibration Toggle
+                    ToggleControlRow(
+                        label = "Tactile Vibration Feedback",
+                        desc = "Vibrates the phone when vitals or motion breach configured limits.",
+                        checked = viewModel.vibrationGuidanceEnabled,
+                        onCheckedChange = { viewModel.vibrationGuidanceEnabled = it },
+                        isDark = isDark
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Push Notification Toggle
+                    ToggleControlRow(
+                        label = "System Push Notifications",
+                        desc = "Dispatches high-priority heads-up notification with remedy text.",
+                        checked = viewModel.notificationFeedsEnabled,
+                        onCheckedChange = { viewModel.notificationFeedsEnabled = it },
+                        isDark = isDark
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Divider(color = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0))
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        "TEST ALARM, TTS & NOTIFICATIONS",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        color = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7),
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Tap any test below to instantly trigger vibration, voice remedy audio (TTS), push notification, and screen warning banner:",
+                        fontSize = 11.sp,
+                        color = secondaryTextColor
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Test Buttons Grid
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                viewModel.triggerTestAlert("temperature")
+                                viewModel.selectTab(0)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                            modifier = Modifier.weight(1f).height(38.dp)
+                        ) {
+                            Text("🌡 High Temp", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+
+                        Button(
+                            onClick = {
+                                viewModel.triggerTestAlert("heartRate")
+                                viewModel.selectTab(0)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B)),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                            modifier = Modifier.weight(1f).height(38.dp)
+                        ) {
+                            Text("💓 High BPM", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                viewModel.triggerTestAlert("spO2")
+                                viewModel.selectTab(0)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                            modifier = Modifier.weight(1f).height(38.dp)
+                        ) {
+                            Text("🫁 Low Oxygen", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+
+                        Button(
+                            onClick = {
+                                viewModel.triggerTestAlert("stress")
+                                viewModel.selectTab(0)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                            modifier = Modifier.weight(1f).height(38.dp)
+                        ) {
+                            Text("⚡ High Stress", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                viewModel.triggerTestAlert("mpuTemp")
+                                viewModel.selectTab(0)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706)),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                            modifier = Modifier.weight(1f).height(38.dp)
+                        ) {
+                            Text("⚙ MPU Heat (48°C)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+
+                        Button(
+                            onClick = {
+                                viewModel.triggerTestAlert("gyro")
+                                viewModel.selectTab(0)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                            modifier = Modifier.weight(1f).height(38.dp)
+                        ) {
+                            Text("🌀 Tremor Spike", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+                }
             }
         }
 
@@ -108,264 +572,143 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = if (isOnline) Icons.Rounded.Wifi else Icons.Rounded.WifiOff,
-                                contentDescription = null,
-                                tint = if (isOnline) Color(0xFF06B6D4) else Color(0xFFEF4444),
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(Color(0xFF06B6D4).copy(alpha = 0.15f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Wifi,
+                                    contentDescription = null,
+                                    tint = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text(
-                                    text = "Raspberry Pi Sensor Node",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = "LAN REST API • Port 5000",
-                                    fontSize = 11.sp,
-                                    color = Color(0xFF64748B)
-                                )
+                                Text("HARDWARE IP ADDRESS", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color(0xFF64748B), letterSpacing = 1.sp)
+                                Text("Raspberry Pi Sensor Bridge", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
                             }
                         }
 
-                        // Connection Status Badge
+                        // Connection Status Pill
                         Box(
                             modifier = Modifier
                                 .background(
-                                    when (viewModel.sensorConnectionStatus) {
-                                        "ONLINE" -> Color(0xFF22C55E).copy(alpha = 0.18f)
-                                        "CONNECTING" -> Color(0xFFEAB308).copy(alpha = 0.18f)
-                                        else -> Color(0xFFEF4444).copy(alpha = 0.18f)
-                                    },
-                                    RoundedCornerShape(8.dp)
+                                    if (isOnline) Color(0xFF22C55E).copy(alpha = 0.15f) else Color(0xFFEF4444).copy(alpha = 0.15f),
+                                    RoundedCornerShape(99.dp)
                                 )
                                 .border(
                                     1.dp,
-                                    when (viewModel.sensorConnectionStatus) {
-                                        "ONLINE" -> Color(0xFF22C55E).copy(alpha = 0.4f)
-                                        "CONNECTING" -> Color(0xFFEAB308).copy(alpha = 0.4f)
-                                        else -> Color(0xFFEF4444).copy(alpha = 0.4f)
-                                    },
-                                    RoundedCornerShape(8.dp)
+                                    if (isOnline) Color(0xFF22C55E).copy(alpha = 0.35f) else Color(0xFFEF4444).copy(alpha = 0.35f),
+                                    RoundedCornerShape(99.dp)
                                 )
-                                .padding(horizontal = 10.dp, vertical = 5.dp)
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = viewModel.sensorConnectionStatus,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Black,
-                                color = when (viewModel.sensorConnectionStatus) {
-                                    "ONLINE" -> Color(0xFF22C55E)
-                                    "CONNECTING" -> Color(0xFFEAB308)
-                                    else -> Color(0xFFEF4444)
-                                }
+                                color = if (isOnline) Color(0xFF22C55E) else Color(0xFFEF4444)
                             )
                         }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // IP Address Input Field
+                    // IP Input Field
                     OutlinedTextField(
                         value = ipInputValue,
                         onValueChange = { ipInputValue = it },
-                        label = { Text("Raspberry Pi IP Address / Host", fontSize = 12.sp, color = Color(0xFF94A3B8)) },
-                        placeholder = { Text("192.168.1.50 or 10.0.2.2", color = Color(0xFF475569)) },
-                        singleLine = true,
+                        label = { Text("Raspberry Pi IP or Hostname", fontSize = 12.sp, color = secondaryTextColor) },
+                        placeholder = { Text("e.g. 192.168.1.50 or 10.0.0.5", fontSize = 12.sp, color = secondaryTextColor) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = Color(0xFF06B6D4),
-                            unfocusedBorderColor = Color(0xFF334155),
-                            focusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.8f),
-                            unfocusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.8f)
+                            focusedTextColor = primaryTextColor,
+                            unfocusedTextColor = primaryTextColor,
+                            focusedBorderColor = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7),
+                            unfocusedBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1),
+                            focusedContainerColor = if (isDark) Color(0xFF090D16) else Color(0xFFF8FAFC),
+                            unfocusedContainerColor = if (isDark) Color(0xFF090D16) else Color(0xFFF8FAFC)
                         ),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true
                     )
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                    // Quick Presets
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Button(
-                            onClick = {
-                                ipInputValue = "10.0.2.2"
-                                viewModel.updateRaspberryPiHost("10.0.2.2")
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF1E293B),
-                                contentColor = Color(0xFF94A3B8)
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            onClick = { viewModel.updateRaspberryPiHost(ipInputValue) },
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7)),
+                            shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Emulator (10.0.2.2)", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Icon(Icons.Rounded.Save, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("SAVE HOST", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
                         }
 
-                        Button(
-                            onClick = {
-                                viewModel.updateRaspberryPiHost(ipInputValue)
-                                viewModel.testSensorConnection()
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF06B6D4),
-                                contentColor = Color(0xFF0F172A)
+                        OutlinedButton(
+                            onClick = { viewModel.testSensorConnection() },
+                            shape = RoundedCornerShape(14.dp),
+                            border = ButtonDefaults.outlinedButtonBorder.copy(
+                                width = 1.dp,
+                                brush = Brush.linearGradient(listOf(Color(0xFF8B5CF6), Color(0xFF3B82F6)))
                             ),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(imageVector = Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Connect", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp), tint = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("TEST LINK", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = primaryTextColor)
                         }
                     }
 
-                    if (viewModel.connectionErrorMessage != null && !isOnline) {
+                    if (viewModel.connectionErrorMessage != null) {
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
-                            text = "Connection Error: ${viewModel.connectionErrorMessage}",
+                            text = "⚠ ${viewModel.connectionErrorMessage}",
                             fontSize = 11.sp,
-                            color = Color(0xFFEF4444)
+                            color = Color(0xFFEF4444),
+                            lineHeight = 15.sp
                         )
-                    }
-
-                    Spacer(modifier = Modifier.height(18.dp))
-                    Text("CONNECTED I2C HARDWARE SENSORS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    SensorStatusRow(label = "MAX30102 (PPG / Heart Rate & SpO2)", active = isOnline)
-                    SensorStatusRow(label = "MPU6050 (6-Axis IMU Accelerometer + Gyro)", active = isOnline)
-
-                    if (livePayload != null && isOnline) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("LIVE HARDWARE TELEMETRY STREAM", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF06B6D4))
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            DevicePropertyColumn("Heart Rate", "${livePayload.heartRate} BPM")
-                            DevicePropertyColumn("Steps", "${livePayload.steps}")
-                            DevicePropertyColumn("Stress GSR", "${livePayload.stressGsr} µS")
-                        }
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            DevicePropertyColumn("Accel Net", "${livePayload.acceleration} g")
-                            DevicePropertyColumn("Accel XYZ", "(${livePayload.ax}, ${livePayload.ay}, ${livePayload.az})")
-                            DevicePropertyColumn("Raw IR", "${livePayload.rawIr}")
-                        }
                     }
                 }
             }
         }
 
-        // ALERT Center (Active Warning/Reminder System)
+        // HARDWARE DIAGNOSTICS & TELEMETRY PROBES CARD
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    "ACTIVE ALERTS SYSTEM",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF64748B),
-                    letterSpacing = 1.sp
-                )
+            GlassmorphicCard(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    Text("TELEMETRY STATUS & LIVE PROBES", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B), letterSpacing = 1.sp)
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                if (viewModel.activeAlerts.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFF1E293B).copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-                            .padding(20.dp),
-                        contentAlignment = Alignment.Center
+                    SensorStatusRow(label = "MAX30102 PPG Optical Bio-Sensor", active = isOnline, isDark = isDark)
+                    SensorStatusRow(label = "MPU6050 6-DOF IMU Kinematics", active = isOnline, isDark = isDark)
+                    SensorStatusRow(label = "Finger-Touch Optical Contact", active = isOnline && (livePayload?.fingerDetected ?: false), isDark = isDark)
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Divider(color = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0))
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = "✓ All stress parameters normal. No active warnings.",
-                            color = Color(0xFF22C55E),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                } else {
-                    viewModel.activeAlerts.forEach { alert ->
-                        val alertColor = when (alert.severity) {
-                            "critical" -> Color(0xFFEF4444)
-                            "high" -> Color(0xFFF97316)
-                            else -> Color(0xFF3B82F6)
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFF0F172A).copy(alpha = 0.9f), RoundedCornerShape(16.dp))
-                                .border(1.dp, alertColor.copy(alpha = 0.25f), RoundedCornerShape(16.dp))
-                                .padding(14.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(
-                                    modifier = Modifier.weight(1.1f),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .background(alertColor, CircleShape)
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                alert.title,
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.White
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                alert.time,
-                                                fontSize = 9.sp,
-                                                color = Color(0xFF64748B)
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            alert.description,
-                                            fontSize = 11.sp,
-                                            color = Color(0xFF94A3B8),
-                                            lineHeight = 15.sp
-                                        )
-                                    }
-                                }
-
-                                TextButton(
-                                    onClick = { viewModel.dismissAlert(alert.id) },
-                                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFF06B6D4))
-                                ) {
-                                    Text("CLEAR", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        }
+                        DevicePropertyColumn(label = "SAMPLE RATE", value = "100 Hz", isDark = isDark)
+                        DevicePropertyColumn(label = "FIFO BUFFER", value = "4-Depth Avg", isDark = isDark)
+                        DevicePropertyColumn(label = "I2C BUS", value = "Bus 1 (400kHz)", isDark = isDark)
                     }
                 }
             }
         }
 
-        // RECOMMENDATIONS LIBRARY LAYOUT
+        // RECOMMENDATIONS LIBRARY
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
@@ -380,71 +723,25 @@ fun SettingsScreen(
                     category = "Sleep",
                     text = "Shutdown all OLED/blue screens after 10 PM. Introduce Pre-Sleep Calm Breathing series.",
                     icon = Icons.Rounded.Bedtime,
-                    color = Color(0xFF06B6D4)
+                    color = Color(0xFF06B6D4),
+                    isDark = isDark
                 )
 
                 RecommendationUnit(
                     category = "Stress Relief",
                     text = "Initiate a 5-minute Coherent Breathwork cycle to normalize erratic sympathetic signals.",
                     icon = Icons.Rounded.SelfImprovement,
-                    color = Color(0xFF8B5CF6)
+                    color = Color(0xFF8B5CF6),
+                    isDark = isDark
                 )
 
                 RecommendationUnit(
                     category = "Recovery",
                     text = "Schedule a daily 1-hour academic disconnected interval to allow cardiac recuperation.",
                     icon = Icons.Rounded.OfflineBolt,
-                    color = Color(0xFF10B981)
+                    color = Color(0xFF10B981),
+                    isDark = isDark
                 )
-
-                RecommendationUnit(
-                    category = "Focus Tuning",
-                    text = "Silence all secondary alerts and trigger focus intervals during hard homework blocks.",
-                    icon = Icons.Rounded.AutoAwesome,
-                    color = Color(0xFFF59E0B)
-                )
-
-                RecommendationUnit(
-                    category = "Burnout Avoidance",
-                    text = "Plan structured weekend decompression voids to downregulate chronic stress baselines.",
-                    icon = Icons.Rounded.WbSunny,
-                    color = Color(0xFFEF4444)
-                )
-            }
-        }
-
-        // CONSOLE CONFIGURATION CONTROLS
-        item {
-            GlassmorphicCard(modifier = Modifier.fillMaxWidth()) {
-                Column {
-                    Text("CONSOLE PREFERENCES", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    ToggleControlRow(
-                        label = "Tactile Vibration Guidance",
-                        desc = "Vibrates the band to pace breathing intervals.",
-                        checked = vibrationGuidanceEnabled,
-                        onCheckedChange = { vibrationGuidanceEnabled = it }
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    ToggleControlRow(
-                        label = "Sound Effects Audio",
-                        desc = "Enable calm chime feedbacks inside scans.",
-                        checked = soundEffectsEnabled,
-                        onCheckedChange = { soundEffectsEnabled = it }
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    ToggleControlRow(
-                        label = "Adaptive Alert Notifications",
-                        desc = "Alerts on abrupt electrodermal (GSR) conduction increases.",
-                        checked = notificationFeedsEnabled,
-                        onCheckedChange = { notificationFeedsEnabled = it }
-                    )
-                }
             }
         }
     }
@@ -457,10 +754,10 @@ fun SettingsScreen(
                 activeActionDesc = null
             },
             title = {
-                Text(text = activeActionTitle ?: "", fontWeight = FontWeight.Black, color = Color.White)
+                Text(text = activeActionTitle ?: "", fontWeight = FontWeight.Black, color = primaryTextColor)
             },
             text = {
-                Text(text = activeActionDesc ?: "", fontSize = 14.sp, color = Color(0xFF94A3B8))
+                Text(text = activeActionDesc ?: "", fontSize = 14.sp, color = secondaryTextColor)
             },
             confirmButton = {
                 Button(
@@ -468,28 +765,120 @@ fun SettingsScreen(
                         activeActionTitle = null
                         activeActionDesc = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF06B6D4))
+                    colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7))
                 ) {
-                    Text("OK", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold)
+                    Text("OK", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             shape = RoundedCornerShape(24.dp),
-            containerColor = Color(0xFF0F172A)
+            containerColor = if (isDark) Color(0xFF0F172A) else Color(0xFFFFFFFF)
         )
     }
 }
 
 @Composable
-fun DevicePropertyColumn(label: String, value: String) {
-    Column {
-        Text(label, fontSize = 10.sp, color = Color(0xFF64748B))
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+fun ThresholdStepperRow(
+    title: String,
+    valueStr: String,
+    note: String,
+    onDecrement: () -> Unit,
+    onIncrement: () -> Unit,
+    isDark: Boolean
+) {
+    val cardBg = if (isDark) Color(0xFF0F172A).copy(alpha = 0.8f) else Color(0xFFF8FAFC)
+    val cardBorder = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0)
+    val textColor = if (isDark) Color.White else Color(0xFF0F172A)
+    val noteColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(cardBg)
+            .border(1.dp, cardBorder, RoundedCornerShape(14.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = textColor)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(note, fontSize = 10.sp, color = noteColor)
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Decrement Button
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0))
+                        .clickable { onDecrement() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Remove,
+                        contentDescription = "Decrease",
+                        tint = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Box(
+                    modifier = Modifier
+                        .widthIn(min = 68.dp)
+                        .padding(horizontal = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = valueStr,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Black,
+                        color = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Increment Button
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0))
+                        .clickable { onIncrement() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Add,
+                        contentDescription = "Increase",
+                        tint = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
     }
 }
 
 @Composable
-fun SensorStatusRow(label: String, active: Boolean) {
+fun DevicePropertyColumn(label: String, value: String, isDark: Boolean) {
+    Column {
+        Text(label, fontSize = 10.sp, color = Color(0xFF64748B))
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color.White else Color(0xFF0F172A))
+    }
+}
+
+@Composable
+fun SensorStatusRow(label: String, active: Boolean, isDark: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -497,7 +886,7 @@ fun SensorStatusRow(label: String, active: Boolean) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, fontSize = 12.sp, color = Color(0xFFCBD5E1))
+        Text(label, fontSize = 12.sp, color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
@@ -520,13 +909,21 @@ fun RecommendationUnit(
     category: String,
     text: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    color: Color
+    color: Color,
+    isDark: Boolean
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFF0F172A).copy(alpha = 0.8f), RoundedCornerShape(14.dp))
-            .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
+            .background(
+                if (isDark) Color(0xFF0F172A).copy(alpha = 0.8f) else Color.White.copy(alpha = 0.9f),
+                RoundedCornerShape(14.dp)
+            )
+            .border(
+                1.dp,
+                if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0),
+                RoundedCornerShape(14.dp)
+            )
             .padding(14.dp)
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
@@ -542,7 +939,12 @@ fun RecommendationUnit(
             Column {
                 Text(category.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Black, color = color)
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(text, fontSize = 12.sp, color = Color(0xFFE2E8F0), lineHeight = 16.sp)
+                Text(
+                    text = text,
+                    fontSize = 12.sp,
+                    color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF334155),
+                    lineHeight = 16.sp
+                )
             }
         }
     }
@@ -553,7 +955,8 @@ fun ToggleControlRow(
     label: String,
     desc: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    isDark: Boolean
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -561,17 +964,17 @@ fun ToggleControlRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1.1f)) {
-            Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color.White else Color(0xFF0F172A))
             Text(desc, fontSize = 10.sp, color = Color(0xFF64748B), lineHeight = 14.sp)
         }
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = Color(0xFF0F172A),
-                checkedTrackColor = Color(0xFF06B6D4),
-                uncheckedThumbColor = Color(0xFF64748B),
-                uncheckedTrackColor = Color(0xFF1E293B)
+                checkedThumbColor = Color.White,
+                checkedTrackColor = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7),
+                uncheckedThumbColor = Color(0xFF94A3B8),
+                uncheckedTrackColor = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0)
             )
         )
     }

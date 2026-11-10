@@ -1,0 +1,715 @@
+#!/usr/bin/env python3
+"""
+Generates publication-quality PDF for:
+NeuroBand AI™ - Complete Execution Guide & 4-Level Threshold Matrix
+"""
+
+import os
+import subprocess
+import time
+
+html_content = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NeuroBand AI - Execution Guide & 4-Level Threshold Matrix</title>
+<style>
+    @page {
+        size: A4;
+        margin: 16mm 14mm 16mm 14mm;
+    }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: #0f172a;
+        background: #ffffff;
+        line-height: 1.5;
+        font-size: 11pt;
+        margin: 0;
+        padding: 0;
+    }
+    .header-banner {
+        border-bottom: 2px solid #0284c7;
+        padding-bottom: 14px;
+        margin-bottom: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+    }
+    .brand-title {
+        font-size: 24pt;
+        font-weight: 900;
+        color: #0f172a;
+        letter-spacing: -0.5px;
+        margin: 0;
+    }
+    .brand-title span {
+        color: #0284c7;
+    }
+    .brand-subtitle {
+        font-size: 12pt;
+        font-weight: 600;
+        color: #475569;
+        margin-top: 4px;
+    }
+    .doc-meta {
+        text-align: right;
+        font-size: 9pt;
+        color: #64748b;
+    }
+    h2 {
+        font-size: 15pt;
+        font-weight: 800;
+        color: #0f172a;
+        border-left: 4px solid #0284c7;
+        padding-left: 10px;
+        margin-top: 28px;
+        margin-bottom: 12px;
+        page-break-after: avoid;
+    }
+    h3 {
+        font-size: 12pt;
+        font-weight: 700;
+        color: #1e293b;
+        margin-top: 20px;
+        margin-bottom: 8px;
+        page-break-after: avoid;
+    }
+    p, li {
+        font-size: 10pt;
+        color: #334155;
+    }
+    ul, ol {
+        margin-top: 6px;
+        margin-bottom: 10px;
+        padding-left: 20px;
+    }
+    li {
+        margin-bottom: 4px;
+    }
+    .card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-bottom: 16px;
+        page-break-inside: avoid;
+    }
+    .card-title {
+        font-weight: 700;
+        font-size: 11pt;
+        color: #0284c7;
+        margin-bottom: 6px;
+    }
+    .badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 99px;
+        font-size: 8pt;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .badge-critical {
+        background: #fee2e2;
+        color: #b91c1c;
+        border: 1px solid #f87171;
+    }
+    .badge-warning {
+        background: #fef3c7;
+        color: #b45309;
+        border: 1px solid #fcd34d;
+    }
+    .badge-normal {
+        background: #dcfce7;
+        color: #15803d;
+        border: 1px solid #86efac;
+    }
+    .badge-cyan {
+        background: #e0f2fe;
+        color: #0369a1;
+        border: 1px solid #7dd3fc;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        margin-bottom: 20px;
+        font-size: 9pt;
+        page-break-inside: avoid;
+    }
+    th {
+        background: #0f172a;
+        color: #ffffff;
+        text-align: left;
+        padding: 8px 10px;
+        font-weight: 700;
+        font-size: 8.5pt;
+        letter-spacing: 0.3px;
+        border: 1px solid #0f172a;
+    }
+    td {
+        padding: 8px 10px;
+        border: 1px solid #e2e8f0;
+        vertical-align: top;
+    }
+    tr:nth-child(even) {
+        background: #f8fafc;
+    }
+    .remedy-text {
+        font-weight: 600;
+        color: #1e293b;
+    }
+    .vib-pattern {
+        font-family: monospace;
+        font-size: 8pt;
+        background: #f1f5f9;
+        padding: 2px 5px;
+        border-radius: 4px;
+        display: inline-block;
+        color: #475569;
+    }
+    .code-block {
+        background: #0f172a;
+        color: #f8fafc;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 8.5pt;
+        line-height: 1.4;
+        margin-top: 6px;
+        margin-bottom: 12px;
+        page-break-inside: avoid;
+    }
+    .diagram-box {
+        display: flex;
+        justify-content: space-between;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 16px;
+        text-align: center;
+        font-size: 9pt;
+        font-weight: 600;
+        page-break-inside: avoid;
+    }
+    .diagram-step {
+        flex: 1;
+        padding: 6px;
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        margin: 0 4px;
+    }
+    .page-break {
+        page-break-before: always;
+    }
+    .footer {
+        margin-top: 30px;
+        border-top: 1px solid #e2e8f0;
+        padding-top: 10px;
+        font-size: 8pt;
+        color: #94a3b8;
+        display: flex;
+        justify-content: space-between;
+    }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header-banner">
+    <div>
+        <div class="brand-title">NeuroBand AI<span>™</span></div>
+        <div class="brand-subtitle">Complete Execution Guide & 4-Level Sensor Threshold Matrix</div>
+    </div>
+    <div class="doc-meta">
+        <strong>Document Version:</strong> 2.4 (Production)<br>
+        <strong>Target Stack:</strong> Raspberry Pi (I2C) + Android Jetpack Compose<br>
+        <strong>Classification:</strong> Engineering & Clinical Protocol
+    </div>
+</div>
+
+<!-- ARCHITECTURE OVERVIEW -->
+<h2>1. System Architecture & Real-Time Flow</h2>
+<p>NeuroBand AI continuously acquires multi-modal physiological and kinematic telemetry from biometric sensors, applies digital signal processing and machine learning inference, and guides the user via visual alert banners and tactile vibration actuators.</p>
+
+<div class="diagram-box">
+    <div class="diagram-step">
+        <span style="color:#0284c7;">STEP 1: SENSORS</span><br>
+        MAX30102 (PPG/SpO2)<br>
+        MPU6050 (6-DOF IMU)
+    </div>
+    <div style="align-self: center; font-weight: bold; color: #64748b;">➔</div>
+    <div class="diagram-step">
+        <span style="color:#7c3aed;">STEP 2: BRIDGE SERVER</span><br>
+        sensor_server.py (Flask)<br>
+        I2C Bus 1 • 100Hz DSP Filtering
+    </div>
+    <div style="align-self: center; font-weight: bold; color: #64748b;">➔</div>
+    <div class="diagram-step">
+        <span style="color:#059669;">STEP 3: MOBILE APP</span><br>
+        Android Jetpack Compose<br>
+        Room DB • Live Polling (1.5s)
+    </div>
+    <div style="align-self: center; font-weight: bold; color: #64748b;">➔</div>
+    <div class="diagram-step">
+        <span style="color:#dc2626;">STEP 4: INTERVENTION</span><br>
+        Haptic Vibration Motor<br>
+        Immediate Actionable Remedy
+    </div>
+</div>
+
+<!-- SECTION 2: HOW TO RUN -->
+<h2>2. Step-by-Step Execution Guide</h2>
+
+<h3>A. Running the Python Sensor Bridge Server (`sensor_server.py`)</h3>
+<p>The bridge server exposes a RESTful API at port <code>5000</code>. It automatically detects whether physical I2C sensors are connected and seamlessly falls back to testing simulation mode on non-hardware platforms.</p>
+
+<ol>
+    <li><strong>Install Dependencies:</strong>
+        <div class="code-block">pip install flask flask-cors
+# If running on Raspberry Pi with physical I2C sensors:
+pip install smbus2</div>
+    </li>
+    <li><strong>Launch the Server:</strong>
+        <div class="code-block">cd neuroband_server
+python sensor_server.py</div>
+        The terminal will output:
+        <div class="code-block">=================================================================
+   NEUROBAND AI - ULTRA PRECISION SENSOR SERVER
+   Listening on http://0.0.0.0:5000
+   REST API Endpoint: http://&lt;IP_ADDRESS&gt;:5000/api/biometrics
+   Simulation Test:   http://&lt;IP_ADDRESS&gt;:5000/api/simulate?hr=115
+=================================================================</div>
+    </li>
+    <li><strong>Browser Dashboard Verification & Quick Threshold Simulation:</strong><br>
+        Open <code>http://localhost:5000</code> in any web browser. Use the quick buttons to simulate threshold events:
+        <ul>
+            <li><code>/api/simulate?hr=72&gyro=1.2&spo2=98</code> (Normal Baseline)</li>
+            <li><code>/api/simulate?hr=118</code> (High Pulse Tachycardia Warning)</li>
+            <li><code>/api/simulate?hr=48</code> (Low Pulse Bradycardia Warning)</li>
+            <li><code>/api/simulate?gyro=68</code> (Tremor & Kinematics Spike)</li>
+            <li><code>/api/simulate?spo2=89</code> (Low SpO2 Hypoxemia Emergency)</li>
+        </ul>
+    </li>
+</ol>
+
+<h3>B. Running the Android Application in Android Studio</h3>
+<ol>
+    <li>Open <strong>Android Studio</strong> and select <strong>Open</strong> ➔ Choose the project folder <code>Neuroband-AI</code>.</li>
+    <li>Allow Gradle to sync automatically.</li>
+    <li>Select an active device (Physical Android Phone or Android Emulator API 26+).</li>
+    <li>Click the green <strong>Run ('app')</strong> button (or press <code>Shift + F10</code>).</li>
+    <li>Once launched, tap the <strong>Settings</strong> icon (4th tab on bottom bar):
+        <ul>
+            <li>If using <strong>Android Emulator</strong> and server is on the same PC: enter host <code>10.0.2.2</code>.</li>
+            <li>If using <strong>Physical Phone</strong>: enter the local Wi-Fi IP of your computer or Raspberry Pi (e.g. <code>192.168.1.50</code>).</li>
+            <li>Tap <strong>SAVE HOST</strong> and tap <strong>TEST LINK</strong>. The indicator will switch to <strong>ONLINE 🟢</strong>.</li>
+        </ul>
+    </li>
+</ol>
+
+<h3>C. Switching Light & Dark Themes</h3>
+<p>The user interface supports both high-contrast Clean Light Theme and Deep Cyber Navy Dark Theme:</p>
+<ul>
+    <li>Open the <strong>Settings</strong> tab ➔ In the top <strong>"APPEARANCE & THEME"</strong> card, toggle the switch.</li>
+    <li><strong>Clean Light Theme:</strong> Pristine slate-white surfaces, vibrant cyan & purple accents, and high-contrast dark text designed for bright environments.</li>
+    <li><strong>Dark Cyber Theme:</strong> Deep navy OLED background with glowing cybernetic indicators.</li>
+</ul>
+
+<h3>D. Testing Haptic Vibration & Remedies</h3>
+<p>To verify the physical vibration actuator and on-screen remedy alert:</p>
+<ul>
+    <li>Navigate to <strong>Settings</strong> ➔ Under <strong>CONSOLE & ALERTS PREFERENCES</strong>, ensure <strong>"Tactile Vibration Guidance"</strong> is enabled.</li>
+    <li>Tap the <strong>"TEST VIBRATION & REMEDY WARNING"</strong> button.</li>
+    <li>The phone will vibrate with the warning haptic pattern, switch to the Home tab, and display the alert banner with the clinical remedy.</li>
+</ul>
+
+<div class="page-break"></div>
+
+<!-- SECTION 3: 4-LEVEL THRESHOLD MATRIX -->
+<h2>3. Clinical 4-Level Sensor Threshold Matrix</h2>
+
+<p>Every biometric parameter is mapped to 4 actionable levels. When a value leaves Level 2 (Normal), the system immediately engages haptic feedback, displays the warning banner, and instructs the patient with a precise behavioral remedy.</p>
+
+<!-- TABLE 1: PULSE RATE -->
+<h3>1. Pulse Rate / Heart Rate (BPM) • Optical MAX30102 PPG</h3>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 12%;">Level</th>
+            <th style="width: 14%;">Range (BPM)</th>
+            <th style="width: 18%;">Clinical Status</th>
+            <th style="width: 18%;">App Warning Banner</th>
+            <th style="width: 16%;">Vibration Pattern</th>
+            <th style="width: 22%;">Actionable Remedy</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><span class="badge badge-warning">Level 1</span></td>
+            <td><strong>&lt; 55 BPM</strong></td>
+            <td>Bradycardia (Abnormal Low)</td>
+            <td>⚠️ <em>"Heart Rate Decreasing (48 BPM) - Low Pulse Warning"</em></td>
+            <td><span class="vib-pattern">200ms ON, 100ms OFF, 200ms ON</span></td>
+            <td class="remedy-text">Sit down to prevent dizziness, stay warm, gently flex fingers and wrists, and drink a warm cup of water or tea.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-normal">Level 2</span></td>
+            <td><strong>55 – 100 BPM</strong></td>
+            <td><strong>Normal ("It's OK")</strong></td>
+            <td>None (Display: <em>"BPM • OPTIMAL"</em>)</td>
+            <td><span class="vib-pattern">No Vibration</span></td>
+            <td class="remedy-text">Cardiovascular rhythm is balanced. Continue routine daily activities.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-warning">Level 3</span></td>
+            <td><strong>101 – 120 BPM</strong></td>
+            <td>Mild Tachycardia (Elevated)</td>
+            <td>⚠️ <em>"Heart Rate Increasing (114 BPM) - Elevated Pulse Warning"</em></td>
+            <td><span class="vib-pattern">200ms ON, 100ms OFF, 200ms ON</span></td>
+            <td class="remedy-text">Sit down comfortably, drink a glass of cool water, and practice slow 4-7-8 deep breaths to regulate heart rhythm.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-critical">Level 4</span></td>
+            <td><strong>&gt; 120 BPM</strong></td>
+            <td>Severe Tachycardia (Emergency)</td>
+            <td>🚨 <em>"Critical Pulse Alert (135 BPM) - Severe Tachycardia"</em></td>
+            <td><span class="vib-pattern">350ms ON, 150ms OFF x3 (Rapid)</span></td>
+            <td class="remedy-text">Halt all physical exertion immediately. Sit upright, sip cool water slowly, apply a cold towel to the neck, and initiate diaphragmatic breathwork.</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- TABLE 2: SPO2 -->
+<h3>2. Blood Oxygen Saturation (SpO2 %) • Dual-Wavelength LED Ratio</h3>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 12%;">Level</th>
+            <th style="width: 14%;">Range (%)</th>
+            <th style="width: 18%;">Clinical Status</th>
+            <th style="width: 18%;">App Warning Banner</th>
+            <th style="width: 16%;">Vibration Pattern</th>
+            <th style="width: 22%;">Actionable Remedy</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><span class="badge badge-critical">Level 1</span></td>
+            <td><strong>&lt; 89%</strong></td>
+            <td>Severe Hypoxemia (Critical)</td>
+            <td>🚨 <em>"Critical SpO2 Alert (87%) - Severe Oxygen Desaturation"</em></td>
+            <td><span class="vib-pattern">350ms ON, 150ms OFF x3 (Rapid)</span></td>
+            <td class="remedy-text">Sit upright, loosen tight collar, practice pursed-lip breathing, and seek immediate medical attention if reading remains below 90%.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-warning">Level 2</span></td>
+            <td><strong>89% – 93%</strong></td>
+            <td>Moderate Hypoxia (Warning)</td>
+            <td>⚠️ <em>"Blood Oxygen Decreasing (91%) - Low Oxygen Alert"</em></td>
+            <td><span class="vib-pattern">200ms ON, 100ms OFF, 200ms ON</span></td>
+            <td class="remedy-text">Sit upright with relaxed shoulders, open a window for fresh ventilation, and take deep diaphragmatic breaths.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-cyan">Level 3</span></td>
+            <td><strong>94% – 95%</strong></td>
+            <td>Borderline Acceptable</td>
+            <td>Informational status pill</td>
+            <td><span class="vib-pattern">No Vibration</span></td>
+            <td class="remedy-text">Ensure sensor has snug contact with skin. Rest quietly and breathe deeply.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-normal">Level 4</span></td>
+            <td><strong>96% – 100%</strong></td>
+            <td><strong>Normal ("It's OK")</strong></td>
+            <td>None (Display: <em>"SpO2 98%"</em>)</td>
+            <td><span class="vib-pattern">No Vibration</span></td>
+            <td class="remedy-text">Blood oxygenation is healthy and optimal.</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<!-- TABLE 3: TREMOR & GYRO -->
+<h3>3. Tremor & Kinematics (MPU6050 Gyroscope Angular Velocity in °/s & Accel)</h3>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 12%;">Level</th>
+            <th style="width: 14%;">Gyro Range (°/s)</th>
+            <th style="width: 18%;">Clinical Status</th>
+            <th style="width: 18%;">App Warning Banner</th>
+            <th style="width: 16%;">Vibration Pattern</th>
+            <th style="width: 22%;">Actionable Remedy</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><span class="badge badge-normal">Level 1</span></td>
+            <td><strong>&lt; 20 °/s</strong></td>
+            <td><strong>Normal / Resting ("It's OK")</strong></td>
+            <td>None (Display: <em>"Kinematics Stable"</em>)</td>
+            <td><span class="vib-pattern">No Vibration</span></td>
+            <td class="remedy-text">No involuntary shaking detected. Normal limb motor control.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-cyan">Level 2</span></td>
+            <td><strong>20 – 45 °/s</strong></td>
+            <td>Voluntary Movement / Walking</td>
+            <td>Tracked as routine pedometer motion</td>
+            <td><span class="vib-pattern">No Vibration</span></td>
+            <td class="remedy-text">Routine functional activity. Movement acceleration is intentional.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-warning">Level 3</span></td>
+            <td><strong>46 – 80 °/s</strong></td>
+            <td>Elevated Tremor (Parkinsonian Band)</td>
+            <td>⚠️ <em>"Tremor & Motion Increasing (58 °/s) - Motor Instability"</em></td>
+            <td><span class="vib-pattern">200ms ON, 100ms OFF, 200ms ON</span></td>
+            <td class="remedy-text">Rest forearm firmly on a flat table, relax shoulder muscles, perform slow finger stretching, and check your medication time.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-critical">Level 4</span></td>
+            <td><strong>&gt; 80 °/s</strong></td>
+            <td>Severe Tremor / Involuntary Spasm</td>
+            <td>🚨 <em>"Critical Tremor Alert (92 °/s) - Severe Motor Spasm"</em></td>
+            <td><span class="vib-pattern">350ms ON, 150ms OFF x3 (Rapid)</span></td>
+            <td class="remedy-text">Place hands on cushioned surfaces, avoid holding hot drinks or sharp items to prevent drops, and begin guided relaxation breathing.</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- TABLE 4: TEMPERATURE -->
+<h3>4. Body / Skin Surface Temperature (°C)</h3>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 12%;">Level</th>
+            <th style="width: 14%;">Range (°C)</th>
+            <th style="width: 18%;">Clinical Status</th>
+            <th style="width: 18%;">App Warning Banner</th>
+            <th style="width: 16%;">Vibration Pattern</th>
+            <th style="width: 22%;">Actionable Remedy</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><span class="badge badge-critical">Level 1</span></td>
+            <td><strong>&lt; 35.5 °C</strong></td>
+            <td>Hypothermia Warning (Low)</td>
+            <td>⚠️ <em>"Temperature Decreasing (35.1 °C) - Low Temperature"</em></td>
+            <td><span class="vib-pattern">200ms ON, 100ms OFF, 200ms ON</span></td>
+            <td class="remedy-text">Put on warm clothing, cover extremities, drink a warm beverage, and remain in a heated environment.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-normal">Level 2</span></td>
+            <td><strong>35.5 – 37.2 °C</strong></td>
+            <td><strong>Normal ("It's OK")</strong></td>
+            <td>None (Display: <em>"Temp 36.6 °C"</em>)</td>
+            <td><span class="vib-pattern">No Vibration</span></td>
+            <td class="remedy-text">Thermoregulation is balanced and stable.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-warning">Level 3</span></td>
+            <td><strong>37.3 – 38.3 °C</strong></td>
+            <td>Low-Grade Fever (Elevated)</td>
+            <td>⚠️ <em>"Temperature Increasing (37.9 °C) - Elevated Temp"</em></td>
+            <td><span class="vib-pattern">Single 200ms Pulse</span></td>
+            <td class="remedy-text">Hydrate with cool water, rest in a ventilated area, and apply a cool damp cloth to your forehead or wrists.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-critical">Level 4</span></td>
+            <td><strong>&gt; 38.4 °C</strong></td>
+            <td>Hyperthermia / High Fever</td>
+            <td>🚨 <em>"Critical Temperature Alert (38.8 °C) - High Fever"</em></td>
+            <td><span class="vib-pattern">350ms ON, 150ms OFF x3 (Rapid)</span></td>
+            <td class="remedy-text">Hydrate frequently with fluids, wear light breathable clothing, rest in a cool space, and consult physician for antipyretics.</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- TABLE 5: GSR & STRESS -->
+<h3>5. Electrodermal Activity (GSR µS) & Autonomic Stress Score</h3>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 12%;">Level</th>
+            <th style="width: 14%;">GSR / Score</th>
+            <th style="width: 18%;">Clinical Status</th>
+            <th style="width: 18%;">App Warning Banner</th>
+            <th style="width: 16%;">Vibration Pattern</th>
+            <th style="width: 22%;">Actionable Remedy</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><span class="badge badge-normal">Level 1</span></td>
+            <td><strong>&lt; 2.0 µS / 0–30</strong></td>
+            <td><strong>Relaxed / Calm ("It's OK")</strong></td>
+            <td>None (Display: <em>"Optimal Autonomic Balance"</em>)</td>
+            <td><span class="vib-pattern">No Vibration</span></td>
+            <td class="remedy-text">Low sympathetic activation. Excellent mental recovery state.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-cyan">Level 2</span></td>
+            <td><strong>2.0–3.5 µS / 31–60</strong></td>
+            <td>Normal Cognitive Focus</td>
+            <td>None (Display: <em>"Active Focus"</em>)</td>
+            <td><span class="vib-pattern">No Vibration</span></td>
+            <td class="remedy-text">Standard working state during routine tasks.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-warning">Level 3</span></td>
+            <td><strong>3.6–5.0 µS / 61–80</strong></td>
+            <td>High Cognitive Stress (Warning)</td>
+            <td>⚠️ <em>"Stress GSR Surge (4.2 µS) - Cognitive Overload"</em></td>
+            <td><span class="vib-pattern">Single 200ms Guidance Pulse</span></td>
+            <td class="remedy-text">Take a 2-minute mindful pause, close your eyes, drink a cup of water, and un-clench your jaw and shoulders.</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-critical">Level 4</span></td>
+            <td><strong>&gt; 5.0 µS / 81–100</strong></td>
+            <td>Acute Burnout Spike (Emergency)</td>
+            <td>🚨 <em>"Acute Stress Surge - High Burnout Risk"</em></td>
+            <td><span class="vib-pattern">350ms ON, 150ms OFF x3 (Rapid)</span></td>
+            <td class="remedy-text">Disconnect from digital screens immediately. Step outside for fresh air, drink water, and start the app's guided 3-minute Breathing Flow.</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<!-- SECTION 4: EXPLAINABLE AI -->
+<h2>4. Explainable AI (SHAP / XAI) Interpretation</h2>
+<p>In NeuroBand AI, alerts are not opaque labels. Predictions are decomposed into additive feature contributions using <strong>SHAP (SHapley Additive exPlanations)</strong>:</p>
+
+<div class="card">
+    <div class="card-title">SHAP Additive Attribution Formula:</div>
+    <div style="font-family: monospace; font-size: 11pt; color: #0284c7; padding: 4px 0;">
+        f(x) = E[f(x)] + &Phi;<sub>HeartRate</sub> + &Phi;<sub>SpO2</sub> + &Phi;<sub>Tremor</sub> + &Phi;<sub>Temperature</sub> + &Phi;<sub>GSR</sub>
+    </div>
+    <ul style="margin-top: 8px;">
+        <li><strong>Base Value E[f(x)] = 0.05:</strong> The expected baseline risk score when all sensors are inside Level 2 (Normal).</li>
+        <li><strong>Negative Contribution (&Phi;<sub>i</sub> &le; 0):</strong> When a vital is in the normal range, its SHAP score suppresses false alerts (<em>"Pulse is optimal, reducing overall risk"</em>).</li>
+        <li><strong>Positive Contribution (&Phi;<sub>i</sub> &gt; 0):</strong> When a sensor deviates above or below threshold, its SHAP value increases proportionally, explicitly highlighting the exact biometric responsible for the warning to the clinician and patient.</li>
+    </ul>
+</div>
+
+<!-- SECTION 5: HARDWARE PINOUTS -->
+<h2>5. Hardware Pinout Reference (Raspberry Pi 40-Pin Header)</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Sensor Pin</th>
+            <th>Raspberry Pi Pin</th>
+            <th>Pin Name / Type</th>
+            <th>Function</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>MAX30102 VCC</strong></td>
+            <td>Pin 1</td>
+            <td>3.3V Power</td>
+            <td>Sensor Power Supply</td>
+        </tr>
+        <tr>
+            <td><strong>MAX30102 GND</strong></td>
+            <td>Pin 6</td>
+            <td>Ground</td>
+            <td>Power Ground</td>
+        </tr>
+        <tr>
+            <td><strong>MAX30102 SDA</strong></td>
+            <td>Pin 3</td>
+            <td>GPIO 2 (I2C1 SDA)</td>
+            <td>I2C Data Line (Address: 0x57)</td>
+        </tr>
+        <tr>
+            <td><strong>MAX30102 SCL</strong></td>
+            <td>Pin 5</td>
+            <td>GPIO 3 (I2C1 SCL)</td>
+            <td>I2C Clock Line</td>
+        </tr>
+        <tr>
+            <td><strong>MPU6050 VCC</strong></td>
+            <td>Pin 17</td>
+            <td>3.3V Power</td>
+            <td>IMU Power Supply</td>
+        </tr>
+        <tr>
+            <td><strong>MPU6050 GND</strong></td>
+            <td>Pin 9</td>
+            <td>Ground</td>
+            <td>Power Ground</td>
+        </tr>
+        <tr>
+            <td><strong>MPU6050 SDA</strong></td>
+            <td>Pin 3 (Shared)</td>
+            <td>GPIO 2 (I2C1 SDA)</td>
+            <td>I2C Data Line (Address: 0x68)</td>
+        </tr>
+        <tr>
+            <td><strong>MPU6050 SCL</strong></td>
+            <td>Pin 5 (Shared)</td>
+            <td>GPIO 3 (I2C1 SCL)</td>
+            <td>I2C Clock Line</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- FOOTER -->
+<div class="footer">
+    <div>NeuroBand AI™ Wearable Health Ecosystem • Generated automatically by Engineering System</div>
+    <div>Page generated for clinical and operational reference</div>
+</div>
+
+</body>
+</html>
+"""
+
+def generate_pdf():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    html_path = os.path.join(current_dir, "SYSTEM_EXECUTION_AND_THRESHOLD_MATRIX.html")
+    pdf_path = os.path.join(current_dir, "SYSTEM_EXECUTION_AND_THRESHOLD_MATRIX.pdf")
+
+    # 1. Write the HTML file
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(html_content)
+    print(f"[1/2] Wrote HTML template: {html_path}")
+
+    # 2. Render to PDF via Headless Microsoft Edge
+    edge_exe = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+    if not os.path.exists(edge_exe):
+        edge_exe = r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"
+
+    if os.path.exists(edge_exe):
+        cmd = [
+            edge_exe,
+            "--headless",
+            "--disable-gpu",
+            "--no-pdf-header-footer",
+            f"--print-to-pdf={pdf_path}",
+            f"file:///{html_path}"
+        ]
+        print(f"[2/2] Compiling PDF with Edge headless engine...")
+        subprocess.run(cmd, check=True)
+        time.sleep(1.5)
+
+        if os.path.exists(pdf_path):
+            size_kb = os.path.getsize(pdf_path) / 1024.0
+            print(f"SUCCESS: PDF generated at: {pdf_path} ({size_kb:.1f} KB)")
+            return True
+        else:
+            print("ERROR: Edge ran but output PDF not found.")
+            return False
+    else:
+        print("ERROR: Microsoft Edge not found at standard paths.")
+        return False
+
+if __name__ == "__main__":
+    generate_pdf()
+

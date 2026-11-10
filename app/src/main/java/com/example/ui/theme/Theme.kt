@@ -40,36 +40,36 @@ private val DarkColorScheme =
 
 private val LightColorScheme =
   lightColorScheme(
-    primary = ColorPrimary,
-    onPrimary = ColorOnPrimary,
-    primaryContainer = ColorPrimaryContainer,
-    onPrimaryContainer = ColorOnPrimaryContainer,
-    secondary = ColorSecondary,
-    onSecondary = ColorOnSecondary,
-    secondaryContainer = ColorSecondaryContainer,
-    onSecondaryContainer = ColorOnSecondaryContainer,
-    tertiary = ColorTertiary,
-    onTertiary = ColorOnTertiary,
-    tertiaryContainer = ColorTertiaryContainer,
-    onTertiaryContainer = ColorOnTertiaryContainer,
-    background = ColorBackground,
-    onBackground = ColorOnBackground,
-    surface = ColorSurface,
-    onSurface = ColorOnSurface,
-    surfaceVariant = ColorSurfaceVariant,
-    onSurfaceVariant = ColorOnSurfaceVariant,
-    outline = ColorOutline,
-    outlineVariant = ColorOutlineVariant,
-    error = ColorError,
-    onError = ColorOnError,
-    errorContainer = ColorErrorContainer,
-    onErrorContainer = ColorOnErrorContainer
+    primary = LightColorPrimary,
+    onPrimary = LightColorOnPrimary,
+    primaryContainer = LightColorPrimaryContainer,
+    onPrimaryContainer = LightColorOnPrimaryContainer,
+    secondary = LightColorSecondary,
+    onSecondary = LightColorOnSecondary,
+    secondaryContainer = LightColorSecondaryContainer,
+    onSecondaryContainer = LightColorOnSecondaryContainer,
+    tertiary = LightColorTertiary,
+    onTertiary = LightColorOnTertiary,
+    tertiaryContainer = LightColorTertiaryContainer,
+    onTertiaryContainer = LightColorOnTertiaryContainer,
+    background = LightColorBackground,
+    onBackground = LightColorOnBackground,
+    surface = LightColorSurface,
+    onSurface = LightColorOnSurface,
+    surfaceVariant = LightColorSurfaceVariant,
+    onSurfaceVariant = LightColorOnSurfaceVariant,
+    outline = LightColorOutline,
+    outlineVariant = LightColorOutlineVariant,
+    error = LightColorError,
+    onError = LightColorOnError,
+    errorContainer = LightColorErrorContainer,
+    onErrorContainer = LightColorOnErrorContainer
   )
 
 @Composable
 fun MyApplicationTheme(
-  darkTheme: Boolean = true, // Force dark theme by default
-  dynamicColor: Boolean = false, // Disable dynamic color to enforce customized deep navy palette
+  darkTheme: Boolean = false, // Configurable light/dark theme (defaults to clean light theme)
+  dynamicColor: Boolean = false,
   content: @Composable () -> Unit,
 ) {
   val colorScheme =

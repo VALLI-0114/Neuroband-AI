@@ -13,7 +13,11 @@ import java.util.concurrent.TimeUnit
 @JsonClass(generateAdapter = true)
 data class SensorPayload(
     @Json(name = "heartRate") val heartRate: Int = 72,
+    @Json(name = "spO2") val spO2: Int = 98,
     @Json(name = "temperature") val temperature: Double = 36.6,
+    @Json(name = "rawMpuTemp") val rawMpuTemp: Double = 39.5,
+    @Json(name = "rawMaxTemp") val rawMaxTemp: Double = 34.0,
+    @Json(name = "tempSource") val tempSource: String = "MPU6050 Calibrated",
     @Json(name = "stressGsr") val stressGsr: Double = 2.1,
     @Json(name = "bloodPressureSystolic") val bloodPressureSystolic: Int = 118,
     @Json(name = "bloodPressureDiastolic") val bloodPressureDiastolic: Int = 76,
@@ -45,8 +49,8 @@ data class SensorStatusResponse(
 
 class SensorApiClient {
     private val client: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(2, TimeUnit.SECONDS)
-        .readTimeout(2, TimeUnit.SECONDS)
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(5, TimeUnit.SECONDS)
         .build()
 
     private val moshi: Moshi = Moshi.Builder()

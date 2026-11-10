@@ -4,18 +4,23 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.example.ui.theme.ColorBackground
 
 @Composable
-fun VaporwaveBackground(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+fun VaporwaveBackground(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     
-    // Animate color gradient offsets for dynamic WebGL-like pulsing effect
+    // Animate color gradient offsets for dynamic ambient pulsing effect
     val xPulse1 by infiniteTransition.animateFloat(
         initialValue = 0.1f,
         targetValue = 0.9f,
@@ -54,19 +59,26 @@ fun VaporwaveBackground(modifier: Modifier = Modifier, content: @Composable () -
         label = "y2"
     )
 
+    val currentBg = MaterialTheme.colorScheme.background
+    val isDark = currentBg == ColorBackground
+    val baseBgColor = if (isDark) Color(0xFF0B1120) else Color(0xFFF8FAFC)
+    val blob1Color = if (isDark) Color(0xFF06B6D4).copy(alpha = 0.15f) else Color(0xFF0284C7).copy(alpha = 0.08f)
+    val blob2Color = if (isDark) Color(0xFF8B5CF6).copy(alpha = 0.18f) else Color(0xFF7C3AED).copy(alpha = 0.07f)
+    val blob3Color = if (isDark) Color(0xFF3B82F6).copy(alpha = 0.12f) else Color(0xFF38BDF8).copy(alpha = 0.06f)
+
     Box(modifier = modifier.fillMaxSize()) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val width = size.width
             val height = size.height
 
-            // Base deep navy background
-            drawRect(color = Color(0xFF0B1120))
+            // Base background
+            drawRect(color = baseBgColor)
 
-            // Pulse glowing blob 1: Cyan (#06B6D4)
+            // Pulse glowing blob 1: Cyan / Sky Blue
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF06B6D4).copy(alpha = 0.15f),
+                        blob1Color,
                         Color.Transparent
                     )
                 ),
@@ -74,11 +86,11 @@ fun VaporwaveBackground(modifier: Modifier = Modifier, content: @Composable () -
                 center = Offset(width * xPulse1, height * yPulse1)
             )
 
-            // Pulse glowing blob 2: Purple (#8B5CF6)
+            // Pulse glowing blob 2: Purple / Violet
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF8B5CF6).copy(alpha = 0.18f),
+                        blob2Color,
                         Color.Transparent
                     )
                 ),
@@ -86,11 +98,11 @@ fun VaporwaveBackground(modifier: Modifier = Modifier, content: @Composable () -
                 center = Offset(width * xPulse2, height * yPulse2)
             )
 
-            // Dynamic Blue blob 3: (#3B82F6)
+            // Dynamic Blue blob 3
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF3B82F6).copy(alpha = 0.12f),
+                        blob3Color,
                         Color.Transparent
                     )
                 ),

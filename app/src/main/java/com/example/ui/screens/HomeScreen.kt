@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,6 +51,17 @@ fun HomeScreen(
     viewModel: BiometricViewModel,
     innerPadding: PaddingValues
 ) {
+    val isDark = viewModel.isDarkTheme
+    val primaryTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+    val secondaryTextColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
+    val statCardBg = if (isDark) Color(0xFF0F172A).copy(alpha = 0.85f) else Color.White.copy(alpha = 0.95f)
+    val statCardBorder = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0)
+    val kinematicsBg = if (isDark) Color(0xFF0B1120).copy(alpha = 0.9f) else Color(0xFFF1F5F9).copy(alpha = 0.95f)
+    val kinematicsBorder = if (isDark) Color(0xFF1E293B) else Color(0xFFCBD5E1)
+    val kinematicsTextColor = if (isDark) Color(0xFFCBD5E1) else Color(0xFF1E293B)
+    val chipCardBg = if (isDark) Color(0xFF1E293B).copy(alpha = 0.5f) else Color(0xFFFFFFFF).copy(alpha = 0.9f)
+    val chipCardBorder = if (isDark) Color.Transparent else Color(0xFFE2E8F0)
+
     val latestLog by viewModel.latestLog.collectAsStateWithLifecycle(initialValue = null)
     val livePayload = viewModel.liveSensorPayload
     val isOnline = viewModel.sensorConnectionStatus == "ONLINE"
@@ -58,6 +70,22 @@ fun HomeScreen(
     val currentSteps = livePayload?.steps ?: (latestLog?.steps ?: 0)
     val currentGsr = livePayload?.stressGsr ?: (latestLog?.stressGsr ?: 2.1)
     val currentAccel = livePayload?.acceleration ?: 1.0
+    val currentGyro = livePayload?.gyro ?: 0.0
+    val currentSpo2 = livePayload?.spO2 ?: 98
+    val currentAx = livePayload?.ax ?: 0.0
+    val currentAy = livePayload?.ay ?: 0.0
+    val currentAz = livePayload?.az ?: 1.0
+    val currentGx = livePayload?.gx ?: 0.0
+    val currentGy = livePayload?.gy ?: 0.0
+    val currentGz = livePayload?.gz ?: 0.0
+    val currentTemp = livePayload?.temperature ?: (latestLog?.temperature ?: 36.6)
+    val currentRawMpuTemp = livePayload?.rawMpuTemp ?: 39.5
+    val currentRawMaxTemp = livePayload?.rawMaxTemp ?: 34.0
+    val displayTemp = if (viewModel.tempMonitoringMode == "MPU_RAW") currentRawMpuTemp else currentTemp
+    val tempLabel = if (viewModel.tempMonitoringMode == "MPU_RAW") "MPU DIE" else "BODY TEMP"
+    val currentBpSys = livePayload?.bloodPressureSystolic ?: (latestLog?.bloodPressureSystolic ?: 118)
+    val currentBpDia = livePayload?.bloodPressureDiastolic ?: (latestLog?.bloodPressureDiastolic ?: 76)
+    val currentCalories = livePayload?.calories ?: (latestLog?.calories ?: 0)
 
     var showDemoDialog by remember { mutableStateOf(false) }
     var isChatOpen by remember { mutableStateOf(false) }
@@ -96,8 +124,8 @@ fun HomeScreen(
                 top = innerPadding.calculateTopPadding() + 16.dp,
                 bottom = innerPadding.calculateBottomPadding() + 80.dp // Leave space for float button
             ),
-            verticalArrangement = Arrangement.spacedBy(28.dp)
-        ) {
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
             // HERO SECTION
             item {
                 Column(
@@ -116,7 +144,7 @@ fun HomeScreen(
                     ) {
                         Text(
                             text = if (isOnline) "✦ PI SENSORS STREAMING LIVE" else "✦ NEURAL STRESS INTELLIGENCE",
-                            color = Color(0xFF06B6D4),
+                            color = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7),
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
                             letterSpacing = 1.sp
@@ -131,7 +159,7 @@ fun HomeScreen(
                         fontSize = 42.sp,
                         lineHeight = 46.sp,
                         fontWeight = FontWeight.Black,
-                        color = Color.White,
+                        color = primaryTextColor,
                         textAlign = TextAlign.Center,
                         letterSpacing = (-1.5).sp
                     )
@@ -142,7 +170,7 @@ fun HomeScreen(
                         text = "Detect Stress • Understand Stress\nPredict Stress • Reduce Stress",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF8B5CF6),
+                        color = if (isDark) Color(0xFF8B5CF6) else Color(0xFF7C3AED),
                         textAlign = TextAlign.Center,
                         letterSpacing = 1.sp
                     )
@@ -154,7 +182,7 @@ fun HomeScreen(
                         text = "Real-time AI wearable link tracking MAX30102 pulse oximetry and MPU6050 motion kinematics from your Raspberry Pi.",
                         fontSize = 15.sp,
                         lineHeight = 22.sp,
-                        color = Color(0xFF94A3B8),
+                        color = secondaryTextColor,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 12.dp)
                     )
@@ -172,7 +200,7 @@ fun HomeScreen(
                         Canvas(modifier = Modifier.size(200.dp)) {
                             // Ring 1 - Base outline
                             drawCircle(
-                                color = Color(0xFF1E293B),
+                                color = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0),
                                 radius = size.minDimension / 2,
                                 style = Stroke(width = 8.dp.toPx())
                             )
@@ -214,13 +242,13 @@ fun HomeScreen(
                                 if (isFingerDetected) "LIVE PULSE" else if (isOnline) "TOUCH SENSOR" else "HARDWARE LINK",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Black,
-                                color = Color(0xFF06B6D4)
+                                color = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7)
                             )
                             Text(
                                 if (isFingerDetected) "$currentHr" else if (isOnline) "READY" else "--",
                                 fontSize = if (isFingerDetected) 44.sp else 32.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = primaryTextColor
                             )
                             Text(
                                 if (isFingerDetected) "BPM • OPTIMAL" else if (isOnline) "PLACE FINGER" else "OFFLINE",
@@ -233,50 +261,180 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // LIVE HARDWARE STATS MINI-GRID ON HOME SCREEN
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .background(Color(0xFF0F172A).copy(alpha = 0.85f), RoundedCornerShape(14.dp))
-                                .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
-                                .padding(10.dp)
+                    // LIVE HARDWARE STATS MATRIX ON HOME SCREEN
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Column {
-                                Text("STEPS (MPU)", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text("$currentSteps", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color.White)
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(statCardBg, RoundedCornerShape(14.dp))
+                                    .border(1.dp, statCardBorder, RoundedCornerShape(14.dp))
+                                    .padding(10.dp)
+                            ) {
+                                Column {
+                                    Text("STEPS (MPU)", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = secondaryTextColor)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("$currentSteps", fontSize = 16.sp, fontWeight = FontWeight.Black, color = primaryTextColor)
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(statCardBg, RoundedCornerShape(14.dp))
+                                    .border(1.dp, statCardBorder, RoundedCornerShape(14.dp))
+                                    .padding(10.dp)
+                            ) {
+                                Column {
+                                    Text("ACCEL NET", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = secondaryTextColor)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("$currentAccel g", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFF06B6D4))
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(statCardBg, RoundedCornerShape(14.dp))
+                                    .border(1.dp, statCardBorder, RoundedCornerShape(14.dp))
+                                    .padding(10.dp)
+                            ) {
+                                Column {
+                                    Text("GYRO NET", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = secondaryTextColor)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("$currentGyro °/s", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFF10B981))
+                                }
                             }
                         }
 
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .background(Color(0xFF0F172A).copy(alpha = 0.85f), RoundedCornerShape(14.dp))
-                                .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
-                                .padding(10.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Column {
-                                Text("MOTION ACCEL", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text("$currentAccel g", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFF06B6D4))
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(statCardBg, RoundedCornerShape(14.dp))
+                                    .border(1.dp, statCardBorder, RoundedCornerShape(14.dp))
+                                    .padding(10.dp)
+                            ) {
+                                Column {
+                                    Text("STRESS GSR", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = secondaryTextColor)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("$currentGsr µS", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFF8B5CF6))
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(statCardBg, RoundedCornerShape(14.dp))
+                                    .border(1.dp, statCardBorder, RoundedCornerShape(14.dp))
+                                    .padding(10.dp)
+                            ) {
+                                Column {
+                                    Text("SpO2 OXYGEN", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = secondaryTextColor)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(if (isFingerDetected) "$currentSpo2%" else "--", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFF38BDF8))
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(statCardBg, RoundedCornerShape(14.dp))
+                                    .border(1.dp, statCardBorder, RoundedCornerShape(14.dp))
+                                    .padding(10.dp)
+                            ) {
+                                Column {
+                                    Text(tempLabel, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = secondaryTextColor)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("$displayTemp °C", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFFF59E0B))
+                                }
                             }
                         }
 
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(statCardBg, RoundedCornerShape(14.dp))
+                                    .border(1.dp, statCardBorder, RoundedCornerShape(14.dp))
+                                    .padding(10.dp)
+                            ) {
+                                Column {
+                                    Text("BLOOD PRESSURE", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = secondaryTextColor)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("$currentBpSys/$currentBpDia mmHg", fontSize = 13.sp, fontWeight = FontWeight.Black, color = if (isDark) Color(0xFF38BDF8) else Color(0xFF0284C7))
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(statCardBg, RoundedCornerShape(14.dp))
+                                    .border(1.dp, statCardBorder, RoundedCornerShape(14.dp))
+                                    .padding(10.dp)
+                            ) {
+                                Column {
+                                    Text("CALORIES BURN", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = secondaryTextColor)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("$currentCalories kcal", fontSize = 15.sp, fontWeight = FontWeight.Black, color = Color(0xFFEC4899))
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(statCardBg, RoundedCornerShape(14.dp))
+                                    .border(1.dp, statCardBorder, RoundedCornerShape(14.dp))
+                                    .padding(10.dp)
+                            ) {
+                                val isOverLimit = (if (viewModel.tempMonitoringMode == "MPU_RAW") currentRawMpuTemp > viewModel.maxMpuTempThreshold else currentTemp > viewModel.maxTempThreshold) || (isFingerDetected && currentHr > viewModel.maxHeartRateThreshold)
+                                Column {
+                                    Text("THRESHOLD STATUS", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = secondaryTextColor)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        if (isOverLimit) "OVER LIMIT ⚠" else "SAFE BOUNDS ✓",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = if (isOverLimit) Color(0xFFEF4444) else Color(0xFF22C55E)
+                                    )
+                                }
+                            }
+                        }
+
+                        // 6-DOF LIVE KINEMATICS PANEL
                         Box(
                             modifier = Modifier
-                                .weight(1f)
-                                .background(Color(0xFF0F172A).copy(alpha = 0.85f), RoundedCornerShape(14.dp))
-                                .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
-                                .padding(10.dp)
+                                .fillMaxWidth()
+                                .background(kinematicsBg, RoundedCornerShape(14.dp))
+                                .border(1.dp, kinematicsBorder, RoundedCornerShape(14.dp))
+                                .padding(12.dp)
                         ) {
                             Column {
-                                Text("STRESS GSR", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text("$currentGsr µS", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFF8B5CF6))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("MPU6050 6-DOF KINEMATICS", fontSize = 9.sp, fontWeight = FontWeight.Black, color = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7), letterSpacing = 1.sp)
+                                    Text(if (isOnline) "● STREAMING" else "OFFLINE", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = if (isOnline) Color(0xFF22C55E) else Color(0xFFEF4444))
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Accel (g): X: $currentAx  Y: $currentAy  Z: $currentAz", fontSize = 11.sp, color = kinematicsTextColor)
+                                    Text("Gyro (°/s): X: $currentGx  Y: $currentGy  Z: $currentGz", fontSize = 11.sp, color = secondaryTextColor)
+                                }
                             }
                         }
                     }
@@ -292,14 +450,14 @@ fun HomeScreen(
                         Button(
                             onClick = { viewModel.selectTab(1) }, // Go to Dashboard analytics
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF06B6D4),
-                                contentColor = Color(0xFF0F172A)
+                                containerColor = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7),
+                                contentColor = Color.White
                             ),
                             shape = RoundedCornerShape(99.dp),
                             modifier = Modifier
                                 .height(52.dp)
                                 .weight(1f),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                         ) {
                             Icon(imageVector = Icons.Rounded.Dashboard, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
@@ -311,7 +469,7 @@ fun HomeScreen(
                         OutlinedButton(
                             onClick = { showDemoDialog = true },
                             colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = Color.White
+                                contentColor = primaryTextColor
                             ),
                             border = ButtonDefaults.outlinedButtonBorder.copy(
                                 width = 1.dp,
@@ -327,7 +485,7 @@ fun HomeScreen(
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
                                 contentDescription = "Demo icon",
-                                tint = Color(0xFF06B6D4),
+                                tint = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7),
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -353,7 +511,7 @@ fun HomeScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.DeveloperBoard,
                                     contentDescription = null,
-                                    tint = Color(0xFF06B6D4),
+                                    tint = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7),
                                     modifier = Modifier.size(24.dp)
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
@@ -361,7 +519,7 @@ fun HomeScreen(
                                     text = "Smart ESP32 Hardware Band",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = primaryTextColor
                                 )
                             }
                             Box(
@@ -386,7 +544,7 @@ fun HomeScreen(
                                 .fillMaxWidth()
                                 .height(140.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(Color(0xFF0B1120)),
+                                .background(if (isDark) Color(0xFF0B1120) else Color(0xFFF1F5F9)),
                             contentAlignment = Alignment.Center
                         ) {
                             AsyncImage(
@@ -405,7 +563,7 @@ fun HomeScreen(
                         Text(
                             text = "Packed with MAX30102 PPG pulse oximetry, GSR sweat conductance, MLX90614 contact temperature, MPU6050 accelerometer, and a haptic vibration actuator.",
                             fontSize = 12.sp,
-                            color = Color(0xFF94A3B8),
+                            color = secondaryTextColor,
                             lineHeight = 18.sp
                         )
                     }
@@ -431,12 +589,13 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .background(Color(0xFF1E293B).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                                .background(chipCardBg, RoundedCornerShape(16.dp))
+                                .border(1.dp, chipCardBorder, RoundedCornerShape(16.dp))
                                 .padding(14.dp)
                         ) {
                             Column {
-                                Text("Active Users", fontSize = 11.sp, color = Color(0xFF94A3B8))
-                                Text("12.8K+", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Text("Active Users", fontSize = 11.sp, color = secondaryTextColor)
+                                Text("12.8K+", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text("📈 +14% this month", fontSize = 9.sp, color = Color(0xFF22C55E))
                             }
@@ -446,14 +605,15 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .background(Color(0xFF1E293B).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                                .background(chipCardBg, RoundedCornerShape(16.dp))
+                                .border(1.dp, chipCardBorder, RoundedCornerShape(16.dp))
                                 .padding(14.dp)
                         ) {
                             Column {
-                                Text("Stress Accuracy", fontSize = 11.sp, color = Color(0xFF94A3B8))
-                                Text("98.4%", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Text("Stress Accuracy", fontSize = 11.sp, color = secondaryTextColor)
+                                Text("98.4%", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text("✓ Clinically Verified", fontSize = 9.sp, color = Color(0xFF06B6D4))
+                                Text("✓ Clinically Verified", fontSize = 9.sp, color = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7))
                             }
                         }
                     }
@@ -466,12 +626,13 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .background(Color(0xFF1E293B).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                                .background(chipCardBg, RoundedCornerShape(16.dp))
+                                .border(1.dp, chipCardBorder, RoundedCornerShape(16.dp))
                                 .padding(14.dp)
                         ) {
                             Column {
-                                Text("Burnout Predict", fontSize = 11.sp, color = Color(0xFF94A3B8))
-                                Text("94% Rate", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Text("Burnout Predict", fontSize = 11.sp, color = secondaryTextColor)
+                                Text("94% Rate", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text("⚡ TinyML Engines", fontSize = 9.sp, color = Color(0xFF8B5CF6))
                             }
@@ -481,12 +642,13 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .background(Color(0xFF1E293B).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                                .background(chipCardBg, RoundedCornerShape(16.dp))
+                                .border(1.dp, chipCardBorder, RoundedCornerShape(16.dp))
                                 .padding(14.dp)
                         ) {
                             Column {
-                                Text("Daily Insights", fontSize = 11.sp, color = Color(0xFF94A3B8))
-                                Text("AI-Driven", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Text("Daily Insights", fontSize = 11.sp, color = secondaryTextColor)
+                                Text("AI-Driven", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text("✦ ChatGPT Core", fontSize = 9.sp, color = Color(0xFF3B82F6))
                             }
@@ -495,7 +657,7 @@ fun HomeScreen(
                 }
             }
 
-            // VALUE PROPOSITION CARDS (Apple/WHOOP responsive aesthetic)
+            // VALUE PROPOSITION CARDS
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(
@@ -534,14 +696,14 @@ fun HomeScreen(
                                     "Explainable Bio-AI",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = primaryTextColor
                                 )
                             }
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(
                                 "Correlates PPG, skin temperature, and electrodermal responses to separate fatigue, environmental thermal stress, and mental workload triggers.",
                                 fontSize = 12.sp,
-                                color = Color(0xFF94A3B8),
+                                color = secondaryTextColor,
                                 lineHeight = 18.sp
                             )
                         }
@@ -566,7 +728,7 @@ fun HomeScreen(
                                     Icon(
                                         imageVector = Icons.Rounded.NotificationsActive,
                                         contentDescription = null,
-                                        tint = Color(0xFF06B6D4),
+                                        tint = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7),
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -575,14 +737,14 @@ fun HomeScreen(
                                     "Predictive Stress Control",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = primaryTextColor
                                 )
                             }
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(
                                 "Forecasts burnout spikes up to 15 minutes before onset by checking micro-instabilities in cardiac pulse patterns.",
                                 fontSize = 12.sp,
-                                color = Color(0xFF94A3B8),
+                                color = secondaryTextColor,
                                 lineHeight = 18.sp
                             )
                         }
@@ -599,8 +761,8 @@ fun HomeScreen(
         ) {
             FloatingActionButton(
                 onClick = { isChatOpen = true },
-                containerColor = Color(0xFF06B6D4),
-                contentColor = Color(0xFF0F172A),
+                containerColor = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7),
+                contentColor = Color.White,
                 shape = CircleShape,
                 modifier = Modifier.height(54.dp)
             ) {
@@ -615,12 +777,12 @@ fun HomeScreen(
             }
         }
 
-        // CHAT ASSISTANT BOTTOM SHEET MODAL (ChatGPT styled conversation)
+        // CHAT ASSISTANT BOTTOM SHEET MODAL
         if (isChatOpen) {
             ModalBottomSheet(
                 onDismissRequest = { isChatOpen = false },
-                containerColor = Color(0xFF0F172A),
-                dragHandle = { BottomSheetDefaults.DragHandle(color = Color(0xFF475569)) }
+                containerColor = if (isDark) Color(0xFF0F172A) else Color(0xFFFFFFFF),
+                dragHandle = { BottomSheetDefaults.DragHandle(color = Color(0xFF94A3B8)) }
             ) {
                 Column(
                     modifier = Modifier
@@ -645,7 +807,7 @@ fun HomeScreen(
                                 "NeuroBand AI Coach",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = primaryTextColor
                             )
                         }
                         
@@ -653,12 +815,12 @@ fun HomeScreen(
                             "LIVE BIO-LINK",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Black,
-                            color = Color(0xFF06B6D4)
+                            color = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7)
                         )
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
-                    Divider(color = Color(0xFF1E293B))
+                    Divider(color = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0))
                     Spacer(modifier = Modifier.height(10.dp))
 
                     // Messages list
@@ -678,7 +840,11 @@ fun HomeScreen(
                                         modifier = Modifier
                                             .widthIn(max = 280.dp)
                                             .background(
-                                                color = if (isCoach) Color(0xFF1E293B) else Color(0xFF06B6D4).copy(alpha = 0.2f),
+                                                color = if (isCoach) {
+                                                    if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)
+                                                } else {
+                                                    if (isDark) Color(0xFF06B6D4).copy(alpha = 0.2f) else Color(0xFF0284C7).copy(alpha = 0.15f)
+                                                },
                                                 shape = RoundedCornerShape(
                                                     topStart = 16.dp,
                                                     topEnd = 16.dp,
@@ -688,7 +854,11 @@ fun HomeScreen(
                                             )
                                             .border(
                                                 width = 1.dp,
-                                                color = if (isCoach) Color(0xFF334155) else Color(0xFF06B6D4).copy(alpha = 0.4f),
+                                                color = if (isCoach) {
+                                                    if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)
+                                                } else {
+                                                    if (isDark) Color(0xFF06B6D4).copy(alpha = 0.4f) else Color(0xFF0284C7).copy(alpha = 0.4f)
+                                                },
                                                 shape = RoundedCornerShape(
                                                     topStart = 16.dp,
                                                     topEnd = 16.dp,
@@ -700,7 +870,11 @@ fun HomeScreen(
                                     ) {
                                         Text(
                                             text = msg.text,
-                                            color = if (isCoach) Color(0xFFE2E8F0) else Color.White,
+                                            color = if (isCoach) {
+                                                if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B)
+                                            } else {
+                                                if (isDark) Color.White else Color(0xFF0284C7)
+                                            },
                                             fontSize = 13.sp,
                                             lineHeight = 18.sp
                                         )
@@ -713,13 +887,13 @@ fun HomeScreen(
                                     Row(horizontalArrangement = Arrangement.Start) {
                                         Box(
                                             modifier = Modifier
-                                                .background(Color(0xFF1E293B), RoundedCornerShape(16.dp))
-                                                .border(1.dp, Color(0xFF334155), RoundedCornerShape(16.dp))
+                                                .background(if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9), RoundedCornerShape(16.dp))
+                                                .border(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1), RoundedCornerShape(16.dp))
                                                 .padding(horizontal = 14.dp, vertical = 10.dp)
                                         ) {
                                             Text(
                                                 "NeuroBand is composing insight...",
-                                                color = Color(0xFF94A3B8),
+                                                color = secondaryTextColor,
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
@@ -745,12 +919,12 @@ fun HomeScreen(
                             onValueChange = { chatInputText = it },
                             placeholder = { Text("Ask about your stress factors or sleep quality...", fontSize = 12.sp, color = Color(0xFF64748B)) },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                focusedBorderColor = Color(0xFF06B6D4),
-                                unfocusedBorderColor = Color(0xFF334155),
-                                focusedContainerColor = Color(0xFF090D16),
-                                unfocusedContainerColor = Color(0xFF090D16)
+                                focusedTextColor = primaryTextColor,
+                                unfocusedTextColor = primaryTextColor,
+                                focusedBorderColor = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7),
+                                unfocusedBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1),
+                                focusedContainerColor = if (isDark) Color(0xFF090D16) else Color(0xFFF8FAFC),
+                                unfocusedContainerColor = if (isDark) Color(0xFF090D16) else Color(0xFFF8FAFC)
                             ),
                             shape = RoundedCornerShape(24.dp),
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
@@ -784,12 +958,12 @@ fun HomeScreen(
                             },
                             modifier = Modifier
                                 .size(48.dp)
-                                .background(Color(0xFF06B6D4), CircleShape)
+                                .background(if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7), CircleShape)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Send,
                                 contentDescription = "Send",
-                                tint = Color(0xFF0F172A),
+                                tint = Color.White,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -807,7 +981,7 @@ fun HomeScreen(
                 Text(
                     "NeuroBand AI™ - Pitch Blueprint",
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = primaryTextColor
                 )
             },
             text = {
@@ -815,7 +989,7 @@ fun HomeScreen(
                     Text(
                         "Connected with the smart band prototype, this app demonstrates real-time feedback loops from 5 telemetry streams.",
                         fontSize = 13.sp,
-                        color = Color(0xFF94A3B8)
+                        color = secondaryTextColor
                     )
                     Spacer(modifier = Modifier.height(14.dp))
                     Text(
@@ -824,7 +998,7 @@ fun HomeScreen(
                         "• Scan Tab: Press physical scanner simulation for local TinyML stress metrics analysis.\n\n" +
                         "• Insight Tab: Explore action items, BLE connections, and configurations.",
                         fontSize = 13.sp,
-                        color = Color(0xFFF1F5F9),
+                        color = primaryTextColor,
                         lineHeight = 20.sp
                     )
                 }
@@ -832,13 +1006,13 @@ fun HomeScreen(
             confirmButton = {
                 Button(
                     onClick = { showDemoDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF06B6D4))
+                    colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7))
                 ) {
-                    Text("Enter Ecosystem", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold)
+                    Text("Enter Ecosystem", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             shape = RoundedCornerShape(24.dp),
-            containerColor = Color(0xFF0F172A)
+            containerColor = if (isDark) Color(0xFF0F172A) else Color(0xFFFFFFFF)
         )
     }
 }

@@ -38,6 +38,10 @@ fun BreathingScreen(
     val scans by viewModel.allStressScans.collectAsStateWithLifecycle(initialValue = emptyList())
     val sessions by viewModel.allMindfulnessSessions.collectAsStateWithLifecycle(initialValue = emptyList())
 
+    val isDark = viewModel.isDarkTheme
+    val primaryTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+    val secondaryTextColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
+
     var activeBreathingTitle by remember { mutableStateOf<String?>(null) }
     var activeBreathingDuration by remember { mutableStateOf(5) }
     var showInferenceResult by remember { mutableStateOf(false) }
@@ -76,7 +80,7 @@ fun BreathingScreen(
                     text = "Parasympathetic Hub",
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Black,
-                    color = Color.White
+                    color = primaryTextColor
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -92,8 +96,8 @@ fun BreathingScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF0F172A).copy(alpha = 0.6f), RoundedCornerShape(14.dp))
-                    .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
+                    .background(if (isDark) Color(0xFF0F172A).copy(alpha = 0.6f) else Color.White.copy(alpha = 0.95f), RoundedCornerShape(14.dp))
+                    .border(1.dp, if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0), RoundedCornerShape(14.dp))
                     .padding(6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
