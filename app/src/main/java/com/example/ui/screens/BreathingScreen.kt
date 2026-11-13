@@ -73,7 +73,7 @@ fun BreathingScreen(
                     text = "NEUROBAND RETREAT",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Black,
-                    color = Color(0xFF06B6D4),
+                    color = MaterialTheme.colorScheme.primary,
                     letterSpacing = 1.5.sp
                 )
                 Text(
@@ -113,11 +113,11 @@ fun BreathingScreen(
                             .weight(1f)
                             .clip(RoundedCornerShape(10.dp))
                             .background(
-                                if (isSelected) Color(0xFF06B6D4).copy(alpha = 0.15f) else Color.Transparent
+                                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent
                             )
                             .border(
                                 width = if (isSelected) 1.dp else 0.dp,
-                                color = if (isSelected) Color(0xFF06B6D4).copy(alpha = 0.35f) else Color.Transparent,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f) else Color.Transparent,
                                 shape = RoundedCornerShape(10.dp)
                             )
                             .clickable { selectedSubTab = tabId }
@@ -131,7 +131,7 @@ fun BreathingScreen(
                             Icon(
                                 imageVector = icon,
                                 contentDescription = null,
-                                tint = if (isSelected) Color(0xFF06B6D4) else Color(0xFF64748B),
+                                tint = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF64748B),
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -139,7 +139,7 @@ fun BreathingScreen(
                                 text = label,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isSelected) Color(0xFF06B6D4) else Color(0xFF64748B),
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF64748B),
                                 letterSpacing = 0.5.sp
                             )
                         }
@@ -177,7 +177,7 @@ fun BreathingScreen(
                                     .size(160.dp)
                                     .clip(CircleShape)
                                     .background(
-                                        color = if (viewModel.isScanning) Color(0xFF06B6D4).copy(alpha = 0.1f * pulseScale) else Color(0xFF1E293B).copy(alpha = 0.4f)
+                                        color = if (viewModel.isScanning) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f * pulseScale) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                                     )
                             )
 
@@ -186,7 +186,7 @@ fun BreathingScreen(
                                     .size(130.dp)
                                     .clip(CircleShape)
                                     .background(
-                                        color = if (viewModel.isScanning) Color(0xFF8B5CF6).copy(alpha = 0.15f) else Color(0xFF1E293B).copy(alpha = 0.6f)
+                                        color = if (viewModel.isScanning) Color(0xFF8B5CF6).copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                                     )
                                     .clickable { viewModel.startScanning() },
                                 contentAlignment = Alignment.Center
@@ -194,7 +194,7 @@ fun BreathingScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.Fingerprint,
                                     contentDescription = "Scan target",
-                                    tint = if (viewModel.isScanning) Color(0xFF06B6D4) else Color(0xFF94A3B8),
+                                    tint = if (viewModel.isScanning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(64.dp)
                                 )
                             }
@@ -221,7 +221,7 @@ fun BreathingScreen(
                             text = viewModel.scanStatusText,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Black,
-                            color = if (viewModel.isScanning) Color(0xFF06B6D4) else Color(0xFF64748B),
+                            color = if (viewModel.isScanning) MaterialTheme.colorScheme.primary else Color(0xFF64748B),
                             letterSpacing = 1.5.sp
                         )
 
@@ -230,8 +230,8 @@ fun BreathingScreen(
                         if (viewModel.isScanning) {
                             LinearProgressIndicator(
                                 progress = viewModel.scanProgress,
-                                color = Color(0xFF06B6D4),
-                                trackColor = Color(0xFF1E293B),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
                                 modifier = Modifier
                                     .fillMaxWidth(0.6f)
                                     .height(6.dp)
@@ -241,8 +241,8 @@ fun BreathingScreen(
                             Button(
                                 onClick = { viewModel.startScanning() },
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF06B6D4),
-                                    contentColor = Color(0xFF0F172A)
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
                                 ),
                                 shape = RoundedCornerShape(24.dp)
                             ) {
@@ -282,7 +282,7 @@ fun BreathingScreen(
                                             Text(
                                                 text = "TinyML Analysis Complete",
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color.White,
+                                                color = MaterialTheme.colorScheme.onSurface,
                                                 fontSize = 16.sp
                                             )
                                         }
@@ -303,13 +303,13 @@ fun BreathingScreen(
                                                 text = latest.stressScore.toString(),
                                                 fontSize = 28.sp,
                                                 fontWeight = FontWeight.Black,
-                                                color = Color(0xFF06B6D4)
+                                                color = MaterialTheme.colorScheme.primary
                                             )
                                             Text(
                                                 text = "STRESS SCORE",
                                                 fontSize = 9.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color(0xFF94A3B8)
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
 
@@ -317,7 +317,7 @@ fun BreathingScreen(
                                             modifier = Modifier
                                                 .width(1.dp)
                                                 .height(30.dp)
-                                                .background(Color(0xFF334155))
+                                                .background(MaterialTheme.colorScheme.outlineVariant)
                                         )
 
                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -331,7 +331,7 @@ fun BreathingScreen(
                                                 text = "CONFIDENCE",
                                                 fontSize = 9.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color(0xFF94A3B8)
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
@@ -340,7 +340,7 @@ fun BreathingScreen(
                                     Text(
                                         text = latest.status,
                                         fontSize = 11.sp,
-                                        color = Color(0xFF94A3B8),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         textAlign = TextAlign.Center,
                                         modifier = Modifier.fillMaxWidth()
                                     )
@@ -370,14 +370,14 @@ fun BreathingScreen(
                                     text = "Understanding 'Center Your Soul'",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp,
-                                    color = Color.White
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "Center Your Soul is a neuro-biological aligner combining slow physical stretching postures with haptic-paced diaphragmatic breathing. Holding these restorative poses while aligning with the Smart Band's vibrations directly quietens autonomic nerves, reduces central adrenal fatigue, and lowers cortical stress index under 10 minutes.",
                                 fontSize = 12.sp,
-                                color = Color(0xFFCBD5E1),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 lineHeight = 17.sp
                             )
                         }
@@ -449,13 +449,13 @@ fun BreathingScreen(
                                         Box(
                                             modifier = Modifier
                                                 .size(44.dp)
-                                                .background(Color(0xFF06B6D4).copy(alpha = 0.15f), shape = CircleShape),
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), shape = CircleShape),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Rounded.SelfImprovement,
                                                 contentDescription = null,
-                                                tint = Color(0xFF06B6D4),
+                                                tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(22.dp)
                                             )
                                         }
@@ -467,7 +467,7 @@ fun BreathingScreen(
                                                 text = pose.title,
                                                 fontSize = 14.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color.White
+                                                color = MaterialTheme.colorScheme.onSurface
                                             )
                                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
                                                 Icon(
@@ -503,7 +503,7 @@ fun BreathingScreen(
                                                 Icon(
                                                     imageVector = if (expandedPoseDetails) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
                                                     contentDescription = "Toggle details",
-                                                    tint = Color(0xFF94A3B8)
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
                                             Button(
@@ -511,19 +511,19 @@ fun BreathingScreen(
                                                     activeBreathingTitle = pose.title
                                                     activeBreathingDuration = pose.duration
                                                 },
-                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
+                                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                                                 contentPadding = PaddingValues(horizontal = 8.dp),
                                                 shape = RoundedCornerShape(10.dp),
-                                                modifier = Modifier.border(1.dp, Color(0xFF334155), RoundedCornerShape(10.dp))
+                                                modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
                                             ) {
                                                 Icon(
                                                     imageVector = Icons.Rounded.PlayArrow,
                                                     contentDescription = "Play",
-                                                    tint = Color(0xFF06B6D4),
+                                                    tint = MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.size(12.dp)
                                                 )
                                                 Spacer(modifier = Modifier.width(2.dp))
-                                                Text("PLAY", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF06B6D4))
+                                                Text("PLAY", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                             }
                                         }
                                     }
@@ -532,7 +532,7 @@ fun BreathingScreen(
                                         Column(
                                             modifier = Modifier
                                                 .padding(top = 12.dp)
-                                                .background(Color(0xFF0F172A).copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp))
                                                 .padding(10.dp)
                                         ) {
                                             Text(
@@ -545,7 +545,7 @@ fun BreathingScreen(
                                             Text(
                                                 text = pose.cortisolMechanism,
                                                 fontSize = 11.sp,
-                                                color = Color(0xFFCBD5E1),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.padding(bottom = 8.dp)
                                             )
 
@@ -553,23 +553,23 @@ fun BreathingScreen(
                                                 text = "STEP-BY-STEP FLOW:",
                                                 fontSize = 9.sp,
                                                 fontWeight = FontWeight.Black,
-                                                color = Color(0xFF06B6D4),
+                                                color = MaterialTheme.colorScheme.primary,
                                                 letterSpacing = 0.5.sp
                                             )
                                             Text(
                                                 text = "1. ${pose.step1}",
                                                 fontSize = 11.sp,
-                                                color = Color(0xFF94A3B8)
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                             Text(
                                                 text = "2. ${pose.step2}",
                                                 fontSize = 11.sp,
-                                                color = Color(0xFF94A3B8)
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                             Text(
                                                 text = "3. ${pose.step3}",
                                                 fontSize = 11.sp,
-                                                color = Color(0xFF94A3B8)
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
@@ -599,14 +599,14 @@ fun BreathingScreen(
                                     text = "Anti-Cortisol Nutrition Science",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp,
-                                    color = Color.White
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "Certain food types are clinically proven to block cortisol spike receptors. Incorporating high metal magnesium trace elements, antioxidant amino complexes, and omega-3 polyunsaturated fatty acids protects key cardiac muscle cells during intense study loads.",
                                 fontSize = 12.sp,
-                                color = Color(0xFFCBD5E1),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 lineHeight = 17.sp
                             )
                         }
@@ -633,7 +633,7 @@ fun BreathingScreen(
                             menu = "Magnesium Zinc Oatmeal + Calming L-Theanine Green Tea",
                             bioMechanism = "L-Theanine crosses blood-brain pathways to immediately plug over-excited glutamate sensors, soothing racing focus vectors without inducing physical drowsiness.",
                             nutrients = "Magnesium: 140mg • L-Theanine: 220mg",
-                            color = Color(0xFF06B6D4)
+                            color = MaterialTheme.colorScheme.primary
                         )
 
                         // Afternoon Plan
@@ -658,8 +658,10 @@ fun BreathingScreen(
             }
         }
 
-        // Achievement metrics at bottom for extra visual rich experience
+        // Your real session results (from saved sessions)
         item {
+            val measured = sessions.filter { it.heartRateReduction != 0 } // 0 = no HR reading or no change
+            val avgDrop = if (measured.isEmpty()) null else measured.map { it.heartRateReduction }.average().toInt()
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -674,13 +676,17 @@ fun BreathingScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "-12 bpm",
+                            text = when {
+                                avgDrop == null -> "--"
+                                avgDrop >= 0 -> "-$avgDrop bpm"
+                                else -> "+${-avgDrop} bpm"
+                            },
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Black,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "AVG HR DROP",
+                            text = if (avgDrop == null) "HR CHANGE (NO DATA YET)" else "AVG HR CHANGE",
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF64748B)
@@ -691,20 +697,20 @@ fun BreathingScreen(
                 GlassmorphicCard(modifier = Modifier.weight(1f)) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                         Icon(
-                            imageVector = Icons.Rounded.Psychology,
+                            imageVector = Icons.Rounded.SelfImprovement,
                             contentDescription = null,
                             tint = Color(0xFF8B5CF6),
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "+15%",
+                            text = "${sessions.size}",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Black,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "COGNITIVE STRENGTH",
+                            text = "SESSIONS • ${sessions.sumOf { it.durationMin }} MIN",
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF64748B)
@@ -715,33 +721,54 @@ fun BreathingScreen(
         }
     }
 
-    // Vibratory interactive loop simulation dialog
+    // Guided session: runs for the pose's real duration and measures heart rate before/after.
     if (activeBreathingTitle != null) {
+        val totalSeconds = activeBreathingDuration * 60
         var secondsPassed by remember { mutableStateOf(0) }
-        var breathingStateText by remember { mutableStateOf("Inhale deeply...") }
+        var breathingStateText by remember { mutableStateOf("Get comfortable...") }
         var isCompletedDialogue by remember { mutableStateOf(false) }
+        var startHr by remember { mutableStateOf<Int?>(null) }
+        var endHr by remember { mutableStateOf<Int?>(null) }
+        val breatheScale = remember { Animatable(0.45f) }
 
-        LaunchedEffect(activeBreathingTitle) {
-            for (i in 1..10) {
-                secondsPassed = i
-                breathingStateText = when (i % 4) {
-                    1 -> "Inhale slowly..."
-                    2 -> "Hold and press..."
-                    3 -> "Exhale slowly..."
-                    else -> "Relax baseline..."
-                }
-                delay(1200)
-            }
+        fun finish() {
+            if (isCompletedDialogue) return
+            endHr = viewModel.currentHeartRate()
             isCompletedDialogue = true
         }
 
+        // Session timer
+        LaunchedEffect(activeBreathingTitle) {
+            startHr = viewModel.currentHeartRate()
+            while (secondsPassed < totalSeconds && !isCompletedDialogue) {
+                delay(1000)
+                secondsPassed++
+            }
+            finish()
+        }
+
+        // Breath pacing: inhale 4s, hold 4s, exhale 6s, with a phone buzz on each inhale/exhale
+        LaunchedEffect(isCompletedDialogue) {
+            while (!isCompletedDialogue) {
+                breathingStateText = "Inhale slowly..."
+                viewModel.breathCue()
+                breatheScale.animateTo(1f, tween(4000, easing = EaseInOutCubic))
+                breathingStateText = "Hold..."
+                delay(4000)
+                breathingStateText = "Exhale slowly..."
+                viewModel.breathCue()
+                breatheScale.animateTo(0.45f, tween(6000, easing = EaseInOutCubic))
+            }
+        }
+
         AlertDialog(
-            onDismissRequest = { activeBreathingTitle = null },
+            // Tapping outside shouldn't throw away a 10-minute session
+            onDismissRequest = { if (isCompletedDialogue) activeBreathingTitle = null },
             title = {
                 Text(
                     text = activeBreathingTitle ?: "Active Breathwork",
                     fontWeight = FontWeight.Black,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             },
             text = {
@@ -749,50 +776,39 @@ fun BreathingScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "VIBRATION ACTUATOR SYNCHRONIZED",
-                        color = Color(0xFF06B6D4),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp,
-                        letterSpacing = 1.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
                     if (!isCompletedDialogue) {
-                        val infiniteTransition = rememberInfiniteTransition(label = "breathing")
-                        val breatheScale by infiniteTransition.animateFloat(
-                            initialValue = 0.82f,
-                            targetValue = 1.25f,
-                            animationSpec = infiniteRepeatable(
-                                animation = tween(3000, easing = EaseInOutCubic),
-                                repeatMode = RepeatMode.Reverse
-                            ),
-                            label = "scaler"
+                        Text(
+                            text = if (viewModel.vibrationGuidanceEnabled) "PHONE BUZZES ON EACH BREATH" else "FOLLOW THE CIRCLE",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp,
+                            letterSpacing = 1.sp
                         )
+
+                        Spacer(modifier = Modifier.height(20.dp))
 
                         Box(
                             modifier = Modifier
                                 .size(110.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF1E293B))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .border(
                                     3.dp, Brush.linearGradient(
-                                        listOf(Color(0xFF06B6D4), Color(0xFF8B5CF6))
+                                        listOf(MaterialTheme.colorScheme.primary, Color(0xFF8B5CF6))
                                     ), CircleShape
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .fillMaxSize(breatheScale)
+                                    .fillMaxSize(breatheScale.value)
                                     .clip(CircleShape)
-                                    .background(Color(0xFF06B6D4).copy(alpha = 0.15f))
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
                             )
                             Icon(
                                 imageVector = Icons.Rounded.Air,
                                 contentDescription = null,
-                                tint = Color(0xFF06B6D4),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(36.dp)
                             )
                         }
@@ -803,16 +819,28 @@ fun BreathingScreen(
                             text = breathingStateText,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF06B6D4),
+                            color = MaterialTheme.colorScheme.primary,
                             textAlign = TextAlign.Center
                         )
 
                         Spacer(modifier = Modifier.height(6.dp))
 
+                        val left = totalSeconds - secondsPassed
                         Text(
-                            text = "Haptic rhythm: ${10 - secondsPassed}s left",
-                            fontSize = 11.sp,
-                            color = Color(0xFF64748B)
+                            text = "%d:%02d left".format(left / 60, left % 60) +
+                                (startHr?.let { " • Start HR $it BPM" } ?: " • No HR reading"),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        LinearProgressIndicator(
+                            progress = secondsPassed / totalSeconds.toFloat(),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier
+                                .padding(top = 12.dp)
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(99.dp))
                         )
                     } else {
                         Icon(
@@ -823,18 +851,18 @@ fun BreathingScreen(
                         )
                         Spacer(modifier = Modifier.height(14.dp))
                         Text(
-                            text = "Calm Preserved",
+                            text = "Session Complete",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Black,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Your heart rate showed a secure drop of 12 BPM, normalizing active parasympathetic control.",
-                            fontSize = 12.sp,
-                            color = Color(0xFF94A3B8),
+                            text = sessionResultText(startHr, endHr, secondsPassed),
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
-                            lineHeight = 16.sp
+                            lineHeight = 18.sp
                         )
                     }
                 }
@@ -843,25 +871,47 @@ fun BreathingScreen(
                 if (isCompletedDialogue) {
                     Button(
                         onClick = {
+                            val s = startHr
+                            val e = endHr
                             viewModel.completeMindfulnessSession(
                                 activeBreathingTitle ?: "Relax Drill",
-                                activeBreathingDuration
+                                ((secondsPassed + 30) / 60).coerceAtLeast(1),
+                                if (s != null && e != null) s - e else null
                             )
                             activeBreathingTitle = null
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF06B6D4))
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
-                        Text("Save & Close", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold)
+                        Text("Save & Close", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                     }
                 } else {
-                    TextButton(onClick = { activeBreathingTitle = null }) {
-                        Text("Cancel", color = Color(0xFFEF4444))
+                    TextButton(onClick = { finish() }) {
+                        Text("Finish now", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
                 }
             },
+            dismissButton = {
+                TextButton(onClick = { activeBreathingTitle = null }) {
+                    Text(if (isCompletedDialogue) "Discard" else "Cancel", color = Color(0xFFEF4444))
+                }
+            },
             shape = RoundedCornerShape(24.dp),
-            containerColor = Color(0xFF0F172A)
+            containerColor = MaterialTheme.colorScheme.surface
         )
+    }
+}
+
+/** Honest summary of the measured heart-rate change for the session result. */
+fun sessionResultText(startHr: Int?, endHr: Int?, seconds: Int): String {
+    val time = "You practiced for %d:%02d.".format(seconds / 60, seconds % 60)
+    if (startHr == null || endHr == null) {
+        return "$time No heart-rate reading was available, so the change couldn't be measured. Keep a finger on the band's sensor next time."
+    }
+    val drop = startHr - endHr
+    return time + " " + when {
+        drop > 0 -> "Your heart rate dropped by $drop BPM ($startHr → $endHr)."
+        drop == 0 -> "Your heart rate stayed steady at $endHr BPM."
+        else -> "Your heart rate rose by ${-drop} BPM ($startHr → $endHr). Try a slower, longer exhale next time."
     }
 }
 
@@ -886,8 +936,8 @@ fun DietPeriodCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFF0F172A).copy(alpha = 0.8f), RoundedCornerShape(16.dp))
-            .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
             .padding(14.dp)
     ) {
         Column {
@@ -923,7 +973,7 @@ fun DietPeriodCard(
                 text = menu,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -931,7 +981,7 @@ fun DietPeriodCard(
             Text(
                 text = bioMechanism,
                 fontSize = 11.sp,
-                color = Color(0xFF94A3B8),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 15.sp
             )
 
@@ -940,13 +990,13 @@ fun DietPeriodCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .background(Color(0xFF1E293B).copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Analytics,
                     contentDescription = null,
-                    tint = Color(0xFF94A3B8),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(12.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -954,7 +1004,7 @@ fun DietPeriodCard(
                     text = nutrients,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFE2E8F0)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }

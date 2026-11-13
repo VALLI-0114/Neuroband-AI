@@ -29,6 +29,13 @@ interface BiometricDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMindfulnessSession(session: MindfulnessSession)
 
+    // AI coach chat (last 200, oldest first)
+    @Query("SELECT * FROM (SELECT * FROM chat_messages ORDER BY id DESC LIMIT 200) ORDER BY id ASC")
+    suspend fun getChatMessages(): List<ChatMessage>
+
+    @Insert
+    suspend fun insertChatMessage(message: ChatMessage)
+
     @Query("DELETE FROM stress_scan_results")
     suspend fun clearAllScans()
 }

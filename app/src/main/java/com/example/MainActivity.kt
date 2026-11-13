@@ -14,6 +14,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,12 +31,14 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ui.BiometricViewModel
 import com.example.ui.ThresholdAlert
+import com.example.ui.remedySteps
 import com.example.ui.components.VaporwaveBackground
 import com.example.ui.screens.*
 import com.example.ui.theme.MyApplicationTheme
@@ -172,16 +176,19 @@ fun AnimatedScreenWarningCard(
         label = "glow"
     )
 
+    val maxCardHeight = (LocalConfiguration.current.screenHeightDp * 0.8f).dp
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(max = maxCardHeight)
             .shadow(
-                elevation = 16.dp,
-                shape = RoundedCornerShape(22.dp),
+                elevation = 20.dp,
+                shape = RoundedCornerShape(26.dp),
                 ambientColor = accentColor,
                 spotColor = accentColor
             )
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(26.dp))
             .background(cardBg)
             .border(
                 width = 2.dp,
@@ -191,194 +198,219 @@ fun AnimatedScreenWarningCard(
                         accentColor.copy(alpha = 0.3f)
                     )
                 ),
-                shape = RoundedCornerShape(22.dp)
+                shape = RoundedCornerShape(26.dp)
             )
-            .padding(16.dp)
     ) {
-        Column {
-            // Header Row with animated bell / warning icon
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp)
+        ) {
+            // Header: pulsing icon + badge + close
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .scale(pulseScale)
+                        .background(accentColor.copy(alpha = 0.15f), CircleShape)
+                        .border(1.5.dp, accentColor.copy(alpha = glowAlpha), CircleShape),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Animated Ringing/Pulsing Icon
+                    Icon(
+                        imageVector = if (alert.isIncreasing) Icons.Rounded.TrendingUp else Icons.Rounded.TrendingDown,
+                        contentDescription = "Warning",
+                        tint = accentColor,
+                        modifier = Modifier
+                            .size(30.dp)
+                            .rotate(shakeAngle)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                Box(modifier = Modifier.weight(1f)) {
                     Box(
                         modifier = Modifier
-                            .size(42.dp)
-                            .scale(pulseScale)
-                            .background(accentColor.copy(alpha = 0.15f), CircleShape)
-                            .border(1.5.dp, accentColor.copy(alpha = glowAlpha), CircleShape),
-                        contentAlignment = Alignment.Center
+                            .background(accentColor.copy(alpha = 0.18f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
-                        Icon(
-                            imageVector = if (alert.isIncreasing) Icons.Rounded.TrendingUp else Icons.Rounded.TrendingDown,
-                            contentDescription = "Warning",
-                            tint = accentColor,
-                            modifier = Modifier
-                                .size(24.dp)
-                                .rotate(shakeAngle)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .background(accentColor.copy(alpha = 0.18f), RoundedCornerShape(6.dp))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = if (isCritical) "🚨 CRITICAL LIMIT" else "⚠ THRESHOLD ALERT",
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = accentColor,
-                                    letterSpacing = 0.5.sp
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "• Haptic Triggered",
-                                fontSize = 9.sp,
-                                color = subTextColor
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = alert.title,
-                            fontSize = 15.sp,
+                            text = if (isCritical) "🚨 CRITICAL LIMIT" else "⚠ THRESHOLD ALERT",
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Black,
-                            color = textColor
-                        )
-                        Text(
-                            text = alert.threshold,
-                            fontSize = 10.sp,
-                            color = subTextColor
+                            color = accentColor,
+                            letterSpacing = 0.5.sp
                         )
                     }
                 }
 
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.size(28.dp)
-                ) {
+                IconButton(onClick = onDismiss, modifier = Modifier.size(40.dp)) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
                         contentDescription = "Dismiss",
                         tint = subTextColor,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
 
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Text(
+                text = alert.title,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Black,
+                color = textColor,
+                lineHeight = 28.sp
+            )
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Actionable Remedy Box with glowing lightbulb
-            Box(
+            // Current reading, large and clear
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
+                    .background(accentColor.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("YOUR READING", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = subTextColor, letterSpacing = 0.5.sp)
+                    Text(alert.currentValue, fontSize = 26.sp, fontWeight = FontWeight.Black, color = accentColor)
+                }
+                Text(
+                    text = alert.threshold,
+                    fontSize = 13.sp,
+                    color = subTextColor,
+                    lineHeight = 18.sp,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Remedy as numbered steps
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
                     .background(if (isDark) Color(0xFF1E293B).copy(alpha = 0.8f) else Color(0xFFFFFBEB))
                     .border(
                         1.dp,
                         if (isDark) Color(0xFFF59E0B).copy(alpha = 0.35f) else Color(0xFFFDE68A),
-                        RoundedCornerShape(14.dp)
+                        RoundedCornerShape(18.dp)
                     )
-                    .padding(12.dp)
+                    .padding(16.dp)
             ) {
-                Row(verticalAlignment = Alignment.Top) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Rounded.Lightbulb,
-                        contentDescription = "Remedy",
+                        contentDescription = null,
                         tint = Color(0xFFF59E0B),
                         modifier = Modifier
-                            .size(20.dp)
+                            .size(26.dp)
                             .scale(pulseScale)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Column {
+                    Text(
+                        text = "WHAT TO DO NOW",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Black,
+                        color = if (isDark) Color(0xFFFBBF24) else Color(0xFFB45309),
+                        letterSpacing = 0.5.sp
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                remedySteps(alert.remedy).forEachIndexed { i, step ->
+                    Row(
+                        modifier = Modifier.padding(bottom = 10.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(26.dp)
+                                .background(Color(0xFFF59E0B), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("${i + 1}", fontSize = 13.sp, fontWeight = FontWeight.Black, color = Color.White)
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "ACTIONABLE REMEDY",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Black,
-                            color = Color(0xFFF59E0B),
-                            letterSpacing = 0.5.sp
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = alert.remedy,
-                            fontSize = 12.sp,
-                            color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF78350F),
-                            lineHeight = 16.sp,
-                            fontWeight = FontWeight.Medium
+                            text = step,
+                            fontSize = 16.sp,
+                            lineHeight = 22.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (isDark) Color(0xFFF1F5F9) else Color(0xFF451A03),
+                            modifier = Modifier.padding(top = 2.dp)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Buttons: TTS, Calm Breathing, Dismiss
+            // Actions
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Button(
                     onClick = onListenTts,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isTtsSpeaking) Color(0xFFEF4444) else accentColor
                     ),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.height(34.dp)
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
                 ) {
                     Icon(
                         imageVector = if (isTtsSpeaking) Icons.Rounded.VolumeOff else Icons.Rounded.VolumeUp,
-                        contentDescription = "TTS Voice",
+                        contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        if (isTtsSpeaking) "STOP AUDIO" else "LISTEN (TTS)",
-                        fontSize = 11.sp,
+                        if (isTtsSpeaking) "Stop" else "Listen",
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                 }
 
-                if (alert.parameterName.contains("Pulse", ignoreCase = true) || alert.parameterName.contains("Stress", ignoreCase = true)) {
+                if (alert.parameterName.contains("Pulse", ignoreCase = true) ||
+                    alert.parameterName.contains("Heart", ignoreCase = true) ||
+                    alert.parameterName.contains("Stress", ignoreCase = true)
+                ) {
                     Button(
                         onClick = onBreathing,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7)
+                            containerColor = if (isDark) Color(0xFF0891B2) else Color(0xFF0284C7)
                         ),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.height(34.dp)
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp)
                     ) {
-                        Text("CALM BREATHING", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("Calm Breathing", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(10.dp))
 
-                OutlinedButton(
-                    onClick = onDismiss,
-                    border = BorderStroke(1.dp, accentColor.copy(alpha = 0.5f)),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    modifier = Modifier.height(34.dp)
-                ) {
-                    Text("DISMISS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = accentColor)
-                }
+            OutlinedButton(
+                onClick = onDismiss,
+                border = BorderStroke(1.5.dp, accentColor.copy(alpha = 0.6f)),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Text("I'm OK, dismiss", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = accentColor)
             }
         }
     }

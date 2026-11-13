@@ -18,20 +18,29 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.BuildConfig
 import com.example.MainActivity
 import com.example.data.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 import kotlin.random.Random
-
-data class ChatMessage(val sender: String, val text: String, val timestamp: Long = System.currentTimeMillis())
-data class StressAlert(val id: Int, val title: String, val description: String, val severity: String, val time: String)
+import kotlin.reflect.KMutableProperty0
 
 data class ThresholdAlert(
     val id: Long = System.currentTimeMillis(),
@@ -135,11 +144,60 @@ class BiometricViewModel(application: Application) : AndroidViewModel(applicatio
     var isThinkingByCoach by mutableStateOf(false)
         private set
 
-    // Active Stress Alerts Notification System
-    val activeAlerts = mutableStateListOf<StressAlert>().apply {
-        add(StressAlert(1, "High Stress Detected", "Elevated GSR conduction of 4.2 µS indicates acute cognitive load.", "high", "Now"))
-        add(StressAlert(2, "Poor Sleep Alert", "Sleep quality is at 31% with elevated sleep latency from student schedules.", "warning", "1h ago"))
-        add(StressAlert(3, "Burnout Threat", "Predictive indicators suggest an 82% exam strain peak in the next 2 hours.", "critical", "3h ago"))
+    // Settings saved across app restarts. Add a field here to persist it.
+    private val prefs = application.getSharedPreferences("neuroband_settings", Context.MODE_PRIVATE)
+    private val persistedSettings: List<Pair<String, KMutableProperty0<out Any>>> = listOf(
+        "isDarkTheme" to ::isDarkTheme,
+        "raspberryPiHost" to ::raspberryPiHost,
+        "vibrationGuidanceEnabled" to ::vibrationGuidanceEnabled,
+        "ttsVoiceEnabled" to ::ttsVoiceEnabled,
+        "notificationFeedsEnabled" to ::notificationFeedsEnabled,
+        "soundEffectsEnabled" to ::soundEffectsEnabled,
+        "tempMonitoringMode" to ::tempMonitoringMode,
+        "maxMpuTempThreshold" to ::maxMpuTempThreshold,
+        "maxTempThreshold" to ::maxTempThreshold,
+        "minTempThreshold" to ::minTempThreshold,
+        "maxHeartRateThreshold" to ::maxHeartRateThreshold,
+        "minHeartRateThreshold" to ::minHeartRateThreshold,
+        "minSpo2Threshold" to ::minSpo2Threshold,
+        "maxGsrThreshold" to ::maxGsrThreshold,
+        "maxGyroThreshold" to ::maxGyroThreshold
+    )
+
+    @Suppress("UNCHECKED_CAST")
+    private fun loadSettings() {
+        persistedSettings.forEach { (key, ref) ->
+            if (!prefs.contains(key)) return@forEach
+            val p = ref as KMutableProperty0<Any>
+            try {
+                when (p.get()) {
+                    is Boolean -> p.set(prefs.getBoolean(key, false))
+                    is Int -> p.set(prefs.getInt(key, 0))
+                    is Double -> prefs.getString(key, null)?.toDoubleOrNull()?.let { p.set(it) }
+                    is String -> prefs.getString(key, null)?.let { p.set(it) }
+                }
+            } catch (_: ClassCastException) {
+                // Stored with an older type; keep the default.
+            }
+        }
+    }
+
+    private fun saveSettingsOnChange() {
+        viewModelScope.launch {
+            snapshotFlow { persistedSettings.map { it.second.get() } }
+                .drop(1) // the just-loaded values
+                .collect { values ->
+                    val edit = prefs.edit()
+                    persistedSettings.zip(values).forEach { (entry, v) ->
+                        when (v) {
+                            is Boolean -> edit.putBoolean(entry.first, v)
+                            is Int -> edit.putInt(entry.first, v)
+                            else -> edit.putString(entry.first, v.toString())
+                        }
+                    }
+                    edit.apply()
+                }
+        }
     }
 
     private var scanJob: Job? = null
@@ -159,6 +217,9 @@ class BiometricViewModel(application: Application) : AndroidViewModel(applicatio
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
+        loadSettings() // before polling starts, so the saved Raspberry Pi host is used
+        saveSettingsOnChange()
+        viewModelScope.launch { chatMessages.addAll(repository.chatHistory()) }
         initTextToSpeech()
         createNotificationChannel()
         // Start real-time hardware telemetry polling loop
@@ -237,11 +298,14 @@ class BiometricViewModel(application: Application) : AndroidViewModel(applicatio
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_dialog_alert)
                 .setContentTitle("🚨 " + alert.title)
-                .setContentText("Remedy: " + alert.remedy)
+                .setContentText("${alert.currentValue} • Tap to see what to do")
                 .setStyle(
                     NotificationCompat.BigTextStyle()
                         .setBigContentTitle("🚨 " + alert.title)
-                        .bigText("Metric: ${alert.parameterName}\nReading: ${alert.currentValue} (${alert.threshold})\n\n💡 ACTIONABLE REMEDY:\n${alert.remedy}")
+                        .bigText(
+                            "Reading: ${alert.currentValue}\n${alert.threshold}\n\n💡 WHAT TO DO NOW:\n" +
+                                remedySteps(alert.remedy).mapIndexed { i, s -> "${i + 1}. $s" }.joinToString("\n")
+                        )
                 )
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -756,14 +820,36 @@ class BiometricViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun completeMindfulnessSession(title: String, duration: Int) {
+    /** Live heart rate from the band, or null when it's offline / no finger on the sensor. */
+    fun currentHeartRate(): Int? {
+        val p = liveSensorPayload ?: return null
+        if (sensorConnectionStatus != "ONLINE" || !(p.fingerDetected || p.heartRate > 0)) return null
+        return p.heartRate.takeIf { it > 0 }
+    }
+
+    /** Short tap on the phone's vibrator to pace each breath phase. */
+    fun breathCue() {
+        if (!vibrationGuidanceEnabled || Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        try {
+            val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                (getApplication<Application>().getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                getApplication<Application>().getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            }
+            vibrator?.vibrate(VibrationEffect.createOneShot(70, 140))
+        } catch (_: Exception) {}
+    }
+
+    /** hrDrop = start HR - end HR (positive = calmer), null when no reading was available. */
+    fun completeMindfulnessSession(title: String, durationMin: Int, hrDrop: Int?) {
         viewModelScope.launch {
             val session = MindfulnessSession(
                 title = title,
-                durationMin = duration,
-                difficulty = if (duration <= 5) "Beginner" else "Intermediate",
-                heartRateReduction = 12,
-                focusIncreasePercent = 18,
+                durationMin = durationMin,
+                difficulty = if (durationMin <= 5) "Beginner" else "Intermediate",
+                heartRateReduction = hrDrop ?: 0,
+                focusIncreasePercent = 0, // not measured
                 timestamp = System.currentTimeMillis()
             )
             repository.insertSession(session)
@@ -777,43 +863,177 @@ class BiometricViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun dismissAlert(id: Int) {
-        val alert = activeAlerts.find { it.id == id }
-        if (alert != null) {
-            activeAlerts.remove(alert)
-        }
-    }
+    /** True when a real Gemini key was built in (.env); otherwise the coach answers offline. */
+    val isAiConfigured: Boolean =
+        BuildConfig.GEMINI_API_KEY.isNotBlank() && BuildConfig.GEMINI_API_KEY != "MY_GEMINI_API_KEY"
+
+    private val chatHttp = OkHttpClient.Builder().readTimeout(40, TimeUnit.SECONDS).build()
 
     fun sendChatMessage(userText: String) {
         if (userText.isBlank()) return
-        chatMessages.add(ChatMessage("user", userText))
+        val userMsg = ChatMessage("user", userText.trim())
+        chatMessages.add(userMsg)
 
         viewModelScope.launch {
+            repository.insertChat(userMsg)
             isThinkingByCoach = true
-            delay(1200)
+            val live = liveSensorPayload.takeIf { sensorConnectionStatus == "ONLINE" }
+            val log = repository.latestLog.first()
+            val vitals = CoachVitals(
+                live = live != null,
+                heartRate = (live?.heartRate ?: log?.heartRate)?.takeIf { it > 0 },
+                spo2 = live?.spO2?.takeIf { it > 0 && (live.fingerDetected || live.heartRate > 0) },
+                temperature = live?.temperature ?: log?.temperature,
+                gsr = live?.stressGsr ?: log?.stressGsr,
+                steps = live?.steps ?: log?.steps ?: 0
+            )
+            // Gemini needs the conversation to start with a user turn, so drop the leading greeting.
+            val history = chatMessages.takeLast(12).dropWhile { it.sender != "user" }
 
-            val currentLog = repository.latestLog.first()
-            val hr = currentLog?.heartRate ?: 72
-            val gsr = currentLog?.stressGsr ?: 2.1
-            val steps = currentLog?.steps ?: 0
+            val hasKey = isAiConfigured
+            val aiReply = if (hasKey) askGemini(BuildConfig.GEMINI_API_KEY, history, vitals) else null
+            val reply = aiReply ?: (offlineCoachReply(userText, vitals) + if (hasKey)
+                "\n\n(Couldn't reach the AI server — check internet. This is offline guidance.)"
+            else
+                "\n\n(Offline mode — add GEMINI_API_KEY in .env and rebuild for full AI answers.)")
 
-            val responseText = when {
-                userText.contains("stress", ignoreCase = true) || userText.contains("why", ignoreCase = true) -> {
-                    "Real-time sensor telemetry shows your Heart Rate is at $hr BPM and Skin Conductance is at $gsr µS. Autonomic balance suggests pacing your tasks and initiating a 3-minute diaphragmatic breathing exercise."
-                }
-                userText.contains("step", ignoreCase = true) || userText.contains("motion", ignoreCase = true) || userText.contains("activity", ignoreCase = true) -> {
-                    "MPU6050 accelerometer has registered $steps active steps today. Regular physical micro-movements help discharge acute muscular tension."
-                }
-                userText.contains("burnout", ignoreCase = true) || userText.contains("exam", ignoreCase = true) -> {
-                    "Based on continuous biometric telemetry, your current recovery stability index is active. Take a proactive 10-minute break now and prioritize hydration."
-                }
-                else -> {
-                    "Live sensors (MAX30102 & MPU6050) report: Heart Rate = $hr BPM, Motion Activity = $steps steps, GSR = $gsr µS. Your biological signals are being monitored in real time. Would you like guidance through a restorative breathing session?"
-                }
-            }
-
-            chatMessages.add(ChatMessage("coach", responseText))
+            val coachMsg = ChatMessage("coach", reply)
+            chatMessages.add(coachMsg)
+            repository.insertChat(coachMsg)
             isThinkingByCoach = false
         }
     }
+
+    private suspend fun askGemini(key: String, history: List<ChatMessage>, vitals: CoachVitals): String? =
+        withContext(Dispatchers.IO) {
+            try {
+                val contents = JSONArray()
+                history.forEach { m ->
+                    contents.put(
+                        JSONObject()
+                            .put("role", if (m.sender == "user") "user" else "model")
+                            .put("parts", JSONArray().put(JSONObject().put("text", m.text)))
+                    )
+                }
+                val system = COACH_SYSTEM_PROMPT + "\n\nCurrent NeuroBand readings: " + vitals.describe()
+                val body = JSONObject()
+                    .put("system_instruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", system))))
+                    .put("contents", contents)
+                    .put("generationConfig", JSONObject().put("temperature", 0.7))
+                val request = Request.Builder()
+                    .url("https://generativelanguage.googleapis.com/v1beta/models/$GEMINI_MODEL:generateContent")
+                    .header("x-goog-api-key", key)
+                    .post(body.toString().toRequestBody("application/json".toMediaType()))
+                    .build()
+                chatHttp.newCall(request).execute().use { resp ->
+                    if (!resp.isSuccessful) return@withContext null
+                    val parts = JSONObject(resp.body?.string().orEmpty())
+                        .getJSONArray("candidates").getJSONObject(0)
+                        .getJSONObject("content").getJSONArray("parts")
+                    (0 until parts.length())
+                        .joinToString("") { parts.getJSONObject(it).optString("text") }
+                        .replace("**", "")
+                        .trim()
+                        .ifEmpty { null }
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
 }
+
+private const val GEMINI_MODEL = "gemini-flash-latest"
+
+private const val COACH_SYSTEM_PROMPT = """You are NeuroBand AI Coach, the assistant inside a stress & wellness wearable app. The band has a MAX30102 (heart rate, SpO2), MPU6050 (motion, steps, temperature) and a GSR skin-conductance sensor. The app has Home, Flow (analytics), Scan (TinyML stress scan, Yoga poses, Diet plans) and Insight (settings & alert thresholds) tabs.
+Answer the user's actual question directly and helpfully - any topic: stress, anxiety, sleep, breathing, yoga, diet, hydration, study/exam focus, fitness, general health, or how the app works. When their readings are relevant, use them and explain what they mean in plain words.
+Style: warm, practical, concise - 2 to 6 short sentences, or a few lines starting with "• ". Plain text only, no markdown, no headings.
+You are not a doctor. For chest pain, fainting, severe breathlessness, SpO2 below 90%, or any emergency, tell them to get urgent medical help immediately."""
+
+data class CoachVitals(
+    val live: Boolean,
+    val heartRate: Int?,
+    val spo2: Int?,
+    val temperature: Double?,
+    val gsr: Double?,
+    val steps: Int
+) {
+    fun describe(): String = buildString {
+        append(if (live) "live from the band. " else "band not connected; last logged values. ")
+        append("Heart rate ${heartRate?.let { "$it BPM" } ?: "unknown"}, ")
+        append("SpO2 ${spo2?.let { "$it%" } ?: "unknown"}, ")
+        append("temperature ${temperature?.let { "%.1f °C".format(it) } ?: "unknown"}, ")
+        append("skin conductance ${gsr?.let { "%.1f µS".format(it) } ?: "unknown"}, ")
+        append("steps today $steps.")
+    }
+}
+
+/** Rule-based answers used when Gemini is not configured or unreachable. */
+fun offlineCoachReply(question: String, v: CoachVitals): String {
+    val q = question.lowercase()
+    // Word-prefix match: "stress" hits "stressed", but "eat" doesn't hit "great".
+    fun has(vararg words: String) = words.any { Regex("\\b" + Regex.escape(it)).containsMatchIn(q) }
+    val hr = v.heartRate
+    val hrNote = when {
+        hr == null -> "I can't see a heart-rate reading right now — place your finger on the MAX30102 sensor."
+        hr > 100 -> "Your heart rate is $hr BPM, which is above the normal resting range (60–100)."
+        hr < 55 -> "Your heart rate is $hr BPM, which is on the low side for resting."
+        else -> "Your heart rate is $hr BPM — within the healthy resting range (60–100)."
+    }
+    val stressHigh = (v.gsr ?: 0.0) > 3.8 || (hr ?: 0) > 100
+
+    return when {
+        has("chest pain", "faint", "can't breathe", "cant breathe", "emergency", "heart attack") ->
+            "This could be serious. Please stop what you're doing, sit down, and contact emergency services or a doctor right away. Don't rely on the app for emergencies."
+        has("hi", "hello", "hey") && q.length < 15 ->
+            "Hi! I'm your NeuroBand coach. Ask me about your heart rate, stress, sleep, breathing, yoga, diet or study focus. $hrNote"
+        has("thank") -> "You're welcome! Keep taking small breaks and stay hydrated."
+        has("heart", "pulse", "bpm") ->
+            "$hrNote\n• Resting HR usually sits between 60 and 100 BPM.\n• Caffeine, stress, dehydration and recent activity raise it.\n• Slow breathing (inhale 4s, exhale 6s) for 2 minutes usually brings it down."
+        has("oxygen", "spo2", "o2") -> {
+            val s = v.spo2
+            when {
+                s == null -> "No SpO2 reading yet — rest your fingertip gently on the sensor and stay still for 10 seconds."
+                s < 90 -> "Your SpO2 is $s%, which is low. Sit upright, breathe slowly and deeply, and seek medical help if it stays below 90% or you feel breathless."
+                s < 95 -> "Your SpO2 is $s%, slightly below ideal (95–100%). Sit upright, open a window and take slow, deep breaths."
+                else -> "Your SpO2 is $s% — healthy (95–100% is normal)."
+            }
+        }
+        has("temp", "fever", "hot", "cold", "heat") -> {
+            val t = v.temperature
+            when {
+                t == null -> "I don't have a temperature reading right now."
+                t > 37.5 -> "Your temperature is %.1f °C, a little high. Drink cool water, rest in a ventilated room and use a cool damp cloth. See a doctor if it goes above 38.5 °C or lasts more than a day.".format(t)
+                t < 35.5 -> "Your temperature is %.1f °C, on the low side. Wear warm layers and have a warm drink.".format(t)
+                else -> "Your temperature is %.1f °C — normal range.".format(t)
+            }
+        }
+        has("stress", "anxi", "panic", "tense", "nervous", "overwhelm", "angry") ->
+            (if (stressHigh) "Your readings show elevated stress right now. " else "Your readings look fairly calm, but let's settle your mind. ") +
+                "Try this:\n• 4-7-8 breathing: inhale 4s, hold 7s, exhale 8s — repeat 4 times.\n• Unclench your jaw and drop your shoulders.\n• Step away from the screen for 3 minutes.\nThe Scan → Yoga tab has a guided Child's Pose that helps too."
+        has("sleep", "insomnia", "tired", "fatigue", "rest") ->
+            "For better sleep:\n• Keep a fixed bed and wake time, even on weekends.\n• No screens or caffeine 1 hour before bed.\n• Try 5 minutes of Savasana or slow breathing in bed.\n• Keep the room cool and dark.\nIf you feel tired during the day, a 20-minute nap before 3 PM helps without hurting night sleep."
+        has("breath", "calm", "relax") ->
+            "Box breathing works fast:\n• Inhale 4s\n• Hold 4s\n• Exhale 4s\n• Hold 4s\nRepeat for 2–3 minutes. $hrNote"
+        has("yoga", "stretch", "pose", "exercise", "workout") ->
+            "Good stress-relief poses (see Scan → Yoga for steps):\n• Child's Pose — 5 min, releases back tension.\n• Cat-Cow — 5 min, loosens the spine.\n• Tree Pose — 8 min, improves focus.\n• Savasana — 10 min, deep relaxation.\nYou've walked ${v.steps} steps today."
+        has("food", "diet", "eat", "meal", "nutrition") ->
+            "Stress-friendly eating:\n• Morning: oats with nuts + green tea (magnesium, L-theanine).\n• Lunch: fish or dal, leafy greens, avocado (omega-3, potassium).\n• Night: sweet potato, curd or turkey (tryptophan for sleep).\nLimit sugar and caffeine after 4 PM."
+        has("water", "hydrat", "drink") ->
+            "Aim for about 2–3 litres of water a day, more if it's hot or you exercise. Dehydration raises heart rate and makes stress feel worse — keep a bottle on your desk."
+        has("study", "focus", "exam", "concentrat", "burnout", "work") ->
+            "To stay focused without burning out:\n• Work 25 min, break 5 min (Pomodoro).\n• Every 2 hours take a 15-min walk.\n• Sleep 7–8 hours — memory consolidates during sleep.\n• Use 2 minutes of slow breathing before starting." +
+                if (stressHigh) "\nYour readings show elevated stress — take a break now." else ""
+        has("headache", "migraine") ->
+            "For a tension headache: drink a glass of water, rest your eyes away from screens, massage your temples and neck, and breathe slowly. See a doctor if it's sudden and severe or comes with vision changes."
+        has("step", "walk", "activity", "motion") ->
+            "You've taken ${v.steps} steps today. A good target is 7,000–10,000. Short 5-minute walks every hour help lower stress hormones."
+        else ->
+            "Here's your current status: " + v.describe() + "\n$hrNote\nYou can ask me about stress, sleep, breathing, yoga, diet, hydration, or study focus."
+    }
+}
+
+/** Splits a one-sentence remedy ("Do A, do B (x, y), and do C.") into separate steps. */
+fun remedySteps(remedy: String): List<String> =
+    remedy.split(Regex("""(?:,\s*(?:and\s+)?|\.\s+)(?![^(]*\))"""))
+        .map { it.trim().trimEnd('.').replaceFirstChar { c -> c.uppercase() } }
+        .filter { it.isNotEmpty() }

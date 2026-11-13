@@ -40,7 +40,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.BiometricViewModel
-import com.example.ui.ChatMessage
+import com.example.data.ChatMessage
 import com.example.ui.components.GlassmorphicCard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -63,6 +63,8 @@ fun HomeScreen(
     val chipCardBorder = if (isDark) Color.Transparent else Color(0xFFE2E8F0)
 
     val latestLog by viewModel.latestLog.collectAsStateWithLifecycle(initialValue = null)
+    val scans by viewModel.allStressScans.collectAsStateWithLifecycle()
+    val sessions by viewModel.allMindfulnessSessions.collectAsStateWithLifecycle()
     val livePayload = viewModel.liveSensorPayload
     val isOnline = viewModel.sensorConnectionStatus == "ONLINE"
     val isFingerDetected = livePayload?.fingerDetected ?: ((livePayload?.heartRate ?: 0) > 0)
@@ -570,89 +572,52 @@ fun HomeScreen(
                 }
             }
 
-            // STATISTICS STRIPE GRID
+            // YOUR REAL ACTIVITY (computed from the band + local database)
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        "HEALTHCARE GRADE FEEDS",
+                        "YOUR ACTIVITY",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF64748B),
                         letterSpacing = 1.2.sp
                     )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        // Stat 1
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .background(chipCardBg, RoundedCornerShape(16.dp))
-                                .border(1.dp, chipCardBorder, RoundedCornerShape(16.dp))
-                                .padding(14.dp)
-                        ) {
-                            Column {
-                                Text("Active Users", fontSize = 11.sp, color = secondaryTextColor)
-                                Text("12.8K+", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text("📈 +14% this month", fontSize = 9.sp, color = Color(0xFF22C55E))
-                            }
-                        }
-
-                        // Stat 2
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .background(chipCardBg, RoundedCornerShape(16.dp))
-                                .border(1.dp, chipCardBorder, RoundedCornerShape(16.dp))
-                                .padding(14.dp)
-                        ) {
-                            Column {
-                                Text("Stress Accuracy", fontSize = 11.sp, color = secondaryTextColor)
-                                Text("98.4%", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text("✓ Clinically Verified", fontSize = 9.sp, color = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7))
-                            }
-                        }
+                    val accent = if (isDark) Color(0xFF06B6D4) else Color(0xFF0284C7)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        StatTile(
+                            label = "Heart Rate",
+                            value = if (isOnline && currentHr > 0) "$currentHr BPM" else "--",
+                            note = if (!isOnline) "Band offline" else if (currentHr > 0) "● Live" else "Place finger on sensor",
+                            noteColor = if (isOnline && currentHr > 0) Color(0xFF22C55E) else secondaryTextColor,
+                            bg = chipCardBg, border = chipCardBorder, primary = primaryTextColor, secondary = secondaryTextColor,
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatTile(
+                            label = "Stress Scans",
+                            value = "${scans.size}",
+                            note = scans.firstOrNull()?.let { "Last score: ${it.stressScore}" } ?: "Run one in Scan tab",
+                            noteColor = accent,
+                            bg = chipCardBg, border = chipCardBorder, primary = primaryTextColor, secondary = secondaryTextColor,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        // Stat 3
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .background(chipCardBg, RoundedCornerShape(16.dp))
-                                .border(1.dp, chipCardBorder, RoundedCornerShape(16.dp))
-                                .padding(14.dp)
-                        ) {
-                            Column {
-                                Text("Burnout Predict", fontSize = 11.sp, color = secondaryTextColor)
-                                Text("94% Rate", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text("⚡ TinyML Engines", fontSize = 9.sp, color = Color(0xFF8B5CF6))
-                            }
-                        }
-
-                        // Stat 4
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .background(chipCardBg, RoundedCornerShape(16.dp))
-                                .border(1.dp, chipCardBorder, RoundedCornerShape(16.dp))
-                                .padding(14.dp)
-                        ) {
-                            Column {
-                                Text("Daily Insights", fontSize = 11.sp, color = secondaryTextColor)
-                                Text("AI-Driven", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryTextColor)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text("✦ ChatGPT Core", fontSize = 9.sp, color = Color(0xFF3B82F6))
-                            }
-                        }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        StatTile(
+                            label = "Calm Sessions",
+                            value = "${sessions.size}",
+                            note = "${sessions.sumOf { it.durationMin }} min total",
+                            noteColor = Color(0xFF8B5CF6),
+                            bg = chipCardBg, border = chipCardBorder, primary = primaryTextColor, secondary = secondaryTextColor,
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatTile(
+                            label = "AI Coach",
+                            value = if (viewModel.isAiConfigured) "Gemini" else "Offline",
+                            note = if (viewModel.isAiConfigured) "✦ Full AI answers" else "Add API key for full AI",
+                            noteColor = if (viewModel.isAiConfigured) Color(0xFF3B82F6) else secondaryTextColor,
+                            bg = chipCardBg, border = chipCardBorder, primary = primaryTextColor, secondary = secondaryTextColor,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
             }
@@ -787,7 +752,7 @@ fun HomeScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(480.dp)
+                        .fillMaxHeight(0.85f)
                         .padding(horizontal = 20.dp, vertical = 6.dp)
                 ) {
                     // Chat Header
@@ -823,7 +788,11 @@ fun HomeScreen(
                     Divider(color = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0))
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Messages list
+                    // Messages list: follow the newest message / typing indicator
+                    LaunchedEffect(viewModel.chatMessages.size, viewModel.isThinkingByCoach) {
+                        val last = viewModel.chatMessages.size - 1 + if (viewModel.isThinkingByCoach) 1 else 0
+                        if (last >= 0) chatListState.animateScrollToItem(last)
+                    }
                     Box(modifier = Modifier.weight(1f)) {
                         LazyColumn(
                             state = chatListState,
@@ -875,8 +844,8 @@ fun HomeScreen(
                                             } else {
                                                 if (isDark) Color.White else Color(0xFF0284C7)
                                             },
-                                            fontSize = 13.sp,
-                                            lineHeight = 18.sp
+                                            fontSize = 14.sp,
+                                            lineHeight = 20.sp
                                         )
                                     }
                                 }
@@ -892,7 +861,7 @@ fun HomeScreen(
                                                 .padding(horizontal = 14.dp, vertical = 10.dp)
                                         ) {
                                             Text(
-                                                "NeuroBand is composing insight...",
+                                                "NeuroBand AI is thinking...",
                                                 color = secondaryTextColor,
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold
@@ -917,7 +886,7 @@ fun HomeScreen(
                         OutlinedTextField(
                             value = chatInputText,
                             onValueChange = { chatInputText = it },
-                            placeholder = { Text("Ask about your stress factors or sleep quality...", fontSize = 12.sp, color = Color(0xFF64748B)) },
+                            placeholder = { Text("Ask anything: stress, sleep, yoga, diet...", fontSize = 13.sp, color = Color(0xFF64748B)) },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = primaryTextColor,
                                 unfocusedTextColor = primaryTextColor,
@@ -1014,5 +983,30 @@ fun HomeScreen(
             shape = RoundedCornerShape(24.dp),
             containerColor = if (isDark) Color(0xFF0F172A) else Color(0xFFFFFFFF)
         )
+    }
+}
+
+@Composable
+private fun StatTile(
+    label: String,
+    value: String,
+    note: String,
+    noteColor: Color,
+    bg: Color,
+    border: Color,
+    primary: Color,
+    secondary: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .background(bg, RoundedCornerShape(16.dp))
+            .border(1.dp, border, RoundedCornerShape(16.dp))
+            .padding(14.dp)
+    ) {
+        Text(label, fontSize = 11.sp, color = secondary)
+        Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primary)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(note, fontSize = 10.sp, color = noteColor)
     }
 }

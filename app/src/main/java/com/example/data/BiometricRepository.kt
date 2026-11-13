@@ -20,6 +20,12 @@ class BiometricRepository(private val biometricDao: BiometricDao) {
         biometricDao.insertMindfulnessSession(session)
     }
 
+    suspend fun chatHistory(): List<ChatMessage> = biometricDao.getChatMessages()
+
+    suspend fun insertChat(message: ChatMessage) {
+        biometricDao.insertChatMessage(message)
+    }
+
     suspend fun clearScans() {
         biometricDao.clearAllScans()
     }

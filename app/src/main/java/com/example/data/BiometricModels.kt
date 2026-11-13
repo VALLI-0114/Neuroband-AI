@@ -28,6 +28,15 @@ data class StressScanResult(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+/** One AI-coach chat bubble; sender is "user" or "coach". */
+@Entity(tableName = "chat_messages")
+data class ChatMessage(
+    val sender: String,
+    val text: String,
+    val timestamp: Long = System.currentTimeMillis(),
+    @PrimaryKey(autoGenerate = true) val id: Long = 0
+)
+
 @Entity(tableName = "mindfulness_sessions")
 data class MindfulnessSession(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

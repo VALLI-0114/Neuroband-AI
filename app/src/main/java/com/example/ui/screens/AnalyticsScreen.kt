@@ -232,7 +232,7 @@ fun AnalyticsScreen(
                                 ) {
                                     Canvas(modifier = Modifier.size(80.dp)) {
                                         drawCircle(
-                                            color = Color(0xFF1E293B),
+                                            color = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0),
                                             radius = size.minDimension / 2,
                                             style = Stroke(width = 6.dp.toPx())
                                         )
@@ -554,11 +554,11 @@ fun AnalyticsScreen(
 
                                 // Selected Cell Detail panel (Makes the Heatmap extremely understandable!)
                                 Card(
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A).copy(alpha = 0.7f)),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                                     shape = RoundedCornerShape(12.dp),
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(12.dp))
+                                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                                 ) {
                                     Column(modifier = Modifier.padding(12.dp)) {
                                         Text(
@@ -603,7 +603,7 @@ fun AnalyticsScreen(
                                         Text(
                                             text = "Trigger Factors: ${selectedCellTriggerReason ?: "General activity study review"}.",
                                             fontSize = 11.sp,
-                                            color = Color(0xFFE2E8F0)
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
@@ -692,7 +692,7 @@ fun AnalyticsScreen(
 
                                 // AI Reasoning block
                                 Card(
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
                                     Row(
@@ -709,7 +709,7 @@ fun AnalyticsScreen(
                                         Text(
                                             "Your cardiac variability (HRV) baseline decreased by 18% over the last 3 days. Correlation with your active calendar reveals sleep duration averages sub-6 hours. Primary trigger: Acute Sleep Deficit.",
                                             fontSize = 11.sp,
-                                            color = Color(0xFFCBD5E1),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             lineHeight = 16.sp
                                         )
                                     }
@@ -875,11 +875,11 @@ fun AnalyticsScreen(
                                     // Interactive Forecasting Metric Panel
                                     val currentPoint = forecastingSlots[selectedPredictiveHourIndex]
                                     Card(
-                                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                                         shape = RoundedCornerShape(12.dp),
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .border(1.dp, Color(0xFF334155), RoundedCornerShape(12.dp))
+                                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                                     ) {
                                         Column(modifier = Modifier.padding(12.dp)) {
                                             Row(
@@ -941,7 +941,7 @@ fun AnalyticsScreen(
                                             Text(
                                                 text = "Anticipated Event: ${currentPoint.event}.",
                                                 fontSize = 11.sp,
-                                                color = Color(0xFFCBD5E1)
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
@@ -1076,7 +1076,7 @@ fun AnalyticsScreen(
                                     ) {
                                         Canvas(modifier = Modifier.fillMaxSize()) {
                                             drawArc(
-                                                color = Color(0xFF1E293B),
+                                                color = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0),
                                                 startAngle = 135f,
                                                 sweepAngle = 270f,
                                                 useCenter = false,
@@ -1100,7 +1100,7 @@ fun AnalyticsScreen(
 
                                 Text("BURNOUT PREVENTION ALGORITHM", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
                                 Spacer(modifier = Modifier.height(6.dp))
-                                Text("Burnout signals suggest elevated parasympathetic strain. Integrate 2 winddown breaths today.", fontSize = 11.sp, color = Color(0xFFCBD5E1), lineHeight = 16.sp)
+                                Text("Burnout signals suggest elevated parasympathetic strain. Integrate 2 winddown breaths today.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 16.sp)
                             }
                         }
                     }
@@ -1198,7 +1198,7 @@ fun LegendItem(color: Color, text: String) {
                 .background(color, CircleShape)
         )
         Spacer(modifier = Modifier.width(6.dp))
-        Text(text, fontSize = 10.sp, color = Color(0xFFE2E8F0))
+        Text(text, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -1242,11 +1242,12 @@ fun PredictionRiskRow(title: String, risk: String, color: Color, reason: String)
 
 @Composable
 fun MiniRadialGauge(label: String, value: Float, color: Color) {
+    val trackColor = MaterialTheme.colorScheme.outlineVariant
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(modifier = Modifier.size(54.dp), contentAlignment = Alignment.Center) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 drawArc(
-                    color = Color(0xFF1E293B),
+                    color = trackColor,
                     startAngle = -225f,
                     sweepAngle = 270f,
                     useCenter = false,
@@ -1369,7 +1370,7 @@ fun ReportFileRow(title: String, date: String, format: String) {
                 },
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(if (isDownloaded) Color(0xFF10B981) else Color(0xFF1E293B))
+                    .background(if (isDownloaded) Color(0xFF10B981) else MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Icon(
                     imageVector = if (isDownloaded) Icons.Rounded.Check else Icons.Rounded.Download,
