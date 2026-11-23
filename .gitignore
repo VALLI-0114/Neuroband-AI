@@ -22,3 +22,14 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
+# KiCad / Freerouting intermediates (hardware/build.ps1 regenerates them)
+hardware/tools/*.jar
+hardware/logs/
+hardware/*/logs/
+hardware/*/*.dsn
+hardware/*/*.ses
+hardware/*/*.kicad_prl
+hardware/*/*-backups/
+hardware/neuroband_boards.png
+fp-info-cache
